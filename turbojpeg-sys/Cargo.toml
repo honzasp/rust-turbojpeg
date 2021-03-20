@@ -1,0 +1,15 @@
+[package]
+name = "turbojpeg-sys"
+version = "0.0.1"
+edition = "2018"
+
+[dependencies]
+libc = "^0.2"
+
+[build-dependencies]
+anyhow = {version = "^1.0"}
+bindgen = {version = "^0.57", optional = true}
+pkg-config = {version = "^0.3", optional = true}
+
+[features]
+default = []

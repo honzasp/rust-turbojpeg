@@ -1,12 +1,19 @@
 [package]
 name = "turbojpeg"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2018"
+authors = ["Jan Špaček <patek.mail@gmail.com>"]
+homepage = "https://github.com/honzasp/rust-turbojpeg"
+repository = "https://github.com/honzasp/rust-turbojpeg"
+license = "Unlicense"
+keywords = ["jpeg", "image", "decoder", "encoder"]
+categories = ["compression", "api-bindings", "multimedia::images"]
+description = "Safe bindings for TurboJPEG"
 
 [dependencies]
 libc = "^0.2"
 thiserror = "^1.0"
-turbojpeg-sys = {path = "turbojpeg-sys", version = "^0.0.1"}
+turbojpeg-sys = {path = "turbojpeg-sys", version = "^0.1.0"}
 
 [dev-dependencies]
 anyhow = {version = "1.0"}

@@ -3,6 +3,7 @@ use std::{ptr, slice};
 use crate::{Image, sys};
 use crate::common::{Subsamp, Result, Error, get_error};
 
+/// Compresses raw pixel data into JPEG.
 #[derive(Debug)]
 pub struct Compressor {
     handle: sys::tjhandle,
@@ -86,6 +87,9 @@ impl Compressor {
     }
 
     /// Compress the `image` into a new `Vec<u8>`.
+    ///
+    /// This method is simpler than [`compress_to_slice`](Compressor::compress_to_slice), but it
+    /// requires multiple allocations and copies the output data from internal buffer to a `Vec`.
     #[doc(alias = "tjCompress2")]
     #[doc(alias = "tjCompress")]
     pub fn compress_to_vec(&mut self, image: Image<&[u8]>) -> Result<Vec<u8>> {
@@ -97,9 +101,9 @@ impl Compressor {
 
     /// Compress the `image` into the buffer `dest`.
     ///
-    /// This method returns an error if the compressed image does not fit into `dest`. Use
-    /// [`buf_len`](Compressor::buf_len) to determine buffer size that is guaranteed to be large
-    /// enough to compress the `image`.
+    /// Returns the size of the compressed image. If the compressed image does not fit into `dest`,
+    /// this method returns an error. Use [`buf_len`](Compressor::buf_len) to determine buffer size
+    /// that is guaranteed to be large enough to compress the `image`.
     #[doc(alias = "tjCompress2")]
     #[doc(alias = "tjCompress")]
     pub fn compress_to_slice(&mut self, image: Image<&[u8]>, dest: &mut [u8]) -> Result<usize> {

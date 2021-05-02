@@ -231,7 +231,7 @@ pub enum Colorspace {
     /// JPEG images can be decompressed to any of the extended RGB pixel formats or grayscale, but
     /// they cannot be decompressed to YUV images.
     #[doc(alias = "TJCS_RGB")]
-    Rgb = sys::TJCS_TJCS_RGB,
+    RGB = sys::TJCS_TJCS_RGB,
 
     /// YCbCr colorspace.
     ///
@@ -264,7 +264,7 @@ pub enum Colorspace {
     /// reordered into image planes, but no colorspace conversion or subsampling is performed. CMYK
     /// JPEG images can only be decompressed to CMYK pixels.
     #[doc(alias = "TJCS_CMYK")]
-    Cmyk = sys::TJCS_TJCS_CMYK,
+    CMYK = sys::TJCS_TJCS_CMYK,
 
     /// YCCK colorspace.
     ///
@@ -274,17 +274,17 @@ pub enum Colorspace {
     /// components in the YCCK pixels can be subsampled without incurring major perceptual loss.
     /// YCCK JPEG images can only be compressed from and decompressed to CMYK pixels.
     #[doc(alias = "TJCS_YCCK")]
-    Ycck = sys::TJCS_TJCS_YCCK,
+    YCCK = sys::TJCS_TJCS_YCCK,
 }
 
 impl Colorspace {
     pub fn from_u32(colorspace: u32) -> Result<Colorspace> {
         Ok(match colorspace {
-            sys::TJCS_TJCS_RGB => Colorspace::Rgb,
+            sys::TJCS_TJCS_RGB => Colorspace::RGB,
             sys::TJCS_TJCS_YCbCr => Colorspace::YCbCr,
             sys::TJCS_TJCS_GRAY => Colorspace::Gray,
-            sys::TJCS_TJCS_CMYK => Colorspace::Cmyk,
-            sys::TJCS_TJCS_YCCK => Colorspace::Ycck,
+            sys::TJCS_TJCS_CMYK => Colorspace::CMYK,
+            sys::TJCS_TJCS_YCCK => Colorspace::YCCK,
             other => return Err(Error::BadColorspace(other)),
         })
     }
@@ -294,6 +294,7 @@ impl Colorspace {
 /// Specialized `Result` type for TurboJPEG.
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// An error that can occur in TurboJPEG.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("TurboJPEG error: {0}")]

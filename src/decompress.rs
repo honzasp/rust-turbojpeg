@@ -2,6 +2,7 @@ use std::convert::TryInto as _;
 use crate::{Image, sys};
 use crate::common::{Subsamp, Colorspace, Result, Error, get_error};
 
+/// Decompresses JPEG data into raw pixels.
 #[derive(Debug)]
 pub struct Decompressor {
     handle: sys::tjhandle,
@@ -9,11 +10,16 @@ pub struct Decompressor {
 
 unsafe impl Send for Decompressor {}
 
+/// JPEG header that describes the compressed image.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DecompressHeader {
+    /// Width of the image in pixels (number of columns).
     pub width: usize,
+    /// Height of the image in pixels (number of rows).
     pub height: usize,
+    /// Chrominance subsampling that is used in the compressed image.
     pub subsamp: Subsamp,
+    /// Colorspace of the compressed image.
     pub colorspace: Colorspace,
 }
 
@@ -59,6 +65,10 @@ impl Decompressor {
     }
 
     /// Decompress a JPEG image in `jpeg_data` into `image`.
+    ///
+    /// The decompressed image is stored in the pixel data of the given `image`, which must be
+    /// fully initialized by the caller. Use [`read_header`](Decompressor::read_header) to
+    /// determine the image size before calling this method.
     #[doc(alias = "tjDecompress2")]
     pub fn decompress_to_slice(&mut self, jpeg_data: &[u8], image: Image<&mut [u8]>) -> Result<()> {
         image.assert_valid(image.pixels.len());

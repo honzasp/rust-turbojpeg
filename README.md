@@ -50,7 +50,6 @@ system, please open an issue or a pull request.
 
 [bindgen]: https://github.com/rust-lang/rust-bindgen
 
-
 ## Contributing
 
 All contributions are welcome! Please contact me (@honzasp) or open a pull
@@ -60,7 +59,6 @@ request. This crate is rather minimal, the main areas of improvement are:
 - Improving the build process of `turbojpeg-sys` crate, so that it works
     seamlessly on a wide range of systems.
 - Testing.
-
 
 ## License
 

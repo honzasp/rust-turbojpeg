@@ -119,24 +119,6 @@ impl PixelFormat {
             PixelFormat::CMYK => 4,
         }
     }
-
-    pub fn from_i32(format: i32) -> Result<PixelFormat> {
-        Ok(match format {
-            sys::TJPF_TJPF_RGB => PixelFormat::RGB,
-            sys::TJPF_TJPF_BGR => PixelFormat::BGR,
-            sys::TJPF_TJPF_RGBX => PixelFormat::RGBX,
-            sys::TJPF_TJPF_BGRX => PixelFormat::BGRX,
-            sys::TJPF_TJPF_XBGR => PixelFormat::XBGR,
-            sys::TJPF_TJPF_XRGB => PixelFormat::XRGB,
-            sys::TJPF_TJPF_GRAY => PixelFormat::GRAY,
-            sys::TJPF_TJPF_RGBA => PixelFormat::RGBA,
-            sys::TJPF_TJPF_BGRA => PixelFormat::BGRA,
-            sys::TJPF_TJPF_ABGR => PixelFormat::ABGR,
-            sys::TJPF_TJPF_ARGB => PixelFormat::ARGB,
-            sys::TJPF_TJPF_CMYK => PixelFormat::CMYK,
-            other => return Err(Error::BadPixelFormat(other)),
-        })
-    }
 }
 
 
@@ -205,7 +187,7 @@ pub enum Subsamp {
 }
 
 impl Subsamp {
-    pub fn from_u32(subsamp: u32) -> Result<Subsamp> {
+    pub(crate) fn from_u32(subsamp: u32) -> Result<Subsamp> {
         Ok(match subsamp {
             sys::TJSAMP_TJSAMP_444 => Subsamp::None,
             sys::TJSAMP_TJSAMP_422 => Subsamp::Sub2x1,
@@ -278,7 +260,7 @@ pub enum Colorspace {
 }
 
 impl Colorspace {
-    pub fn from_u32(colorspace: u32) -> Result<Colorspace> {
+    pub(crate) fn from_u32(colorspace: u32) -> Result<Colorspace> {
         Ok(match colorspace {
             sys::TJCS_TJCS_RGB => Colorspace::RGB,
             sys::TJCS_TJCS_YCbCr => Colorspace::YCbCr,
@@ -297,16 +279,23 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// An error that can occur in TurboJPEG.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    /// TurboJPEG returned an error message.
     #[error("TurboJPEG error: {0}")]
     TurboJpegError(String),
+    
+    /// TurboJPEG unexpectedly returned a null pointer, prehaps because it ran out of memory.
     #[error("TurboJPEG returned null pointer")]
     Null(),
-    #[error("TurboJPEG returned unknown pixel format: {0}")]
-    BadPixelFormat(i32),
+
+    /// TurboJPEG returned a chrominance subsampling variant that is not known by this crate.
     #[error("TurboJPEG returned unknown subsampling option: {0}")]
     BadSubsamp(u32),
+
+    /// TurboJPEG returned a colorspace variant that is not known by this crate.
     #[error("TurboJPEG returned unknown colorspace: {0}")]
     BadColorspace(u32),
+
+    /// The given integer value overflowed when converted into type expected by TurboJPEG.
     #[error("integer value {0:?} overflowed")]
     IntegerOverflow(&'static str),
 }

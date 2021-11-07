@@ -1,87 +1,34 @@
 # rust-turbojpeg
 
-Rust bindings for TurboJPEG, which provides simple and fast
+Rust bindings for [TurboJPEG][libjpeg-turbo], which provides simple and fast
 compression/decompression of JPEG images.
 
 TurboJPEG is a high-level API provided by [libjpeg-turbo].
 
 [libjpeg-turbo]: https://libjpeg-turbo.org/
 
-
 ## Usage
 
-Use `turbojpeg::Compressor` to compress raw pixel data into JPEG (see
-`examples/simple_compress.rs` for full example):
+To quickly encode and decode images from the [`image`][image-rs] crate, add this
+to the `[dependencies]` section in your `Cargo.toml`:
 
-```rust
-use turbojpeg::{Compressor, Image, PixelFormat};
+    turbojpeg = {version = "0.2", features = ["image"]}
 
-// prepare the raw pixel data
-let width: usize = ...;
-let height: usize = ...;
-let pixels: Vec<u8> = ...;
+and then use the functions [`turbojpeg::decompress_image`][decompress] and
+[`turbojpeg::compress_image`][compress]. For more details, please [see the
+documentation][docs].
 
-// initialize a Compressor
-let mut compressor = Compressor::new()?;
-
-// create an Image that bundles a reference to the raw pixel data (as &[u8])
-// with information about the image format
-let image = Image {
-    pixels: pixels.as_slice(),
-    width: width,
-    pitch: 3 * width, // there is no padding between rows
-    height: height,
-    format: PixelFormat::RGB,
-};
-
-// compress the Image to a Vec<u8> of JPEG data
-let jpeg_data = compressor.compress_to_vec(image)?;
-```
-
-To decompress JPEG data into a raw pixel data, use `turbojpeg::Decompressor`
-(full example in `examples/simple_decompress.rs`):
-
-```rust
-use turbojpeg::{Decompressor, Image, PixelFormat};
-
-// get the JPEG data
-let jpeg_data: &[u8] = ...;
-
-// initialize a Decompressor
-let mut decompressor = Decompressor::new()?;
-
-// read the JPEG header with image size
-let header = decompressor.read_header(jpeg_data)?;
-let (width, height) = (header.width, header.height);
-
-// prepare a storage for the raw pixel data
-let mut pixels = vec![0; 3*width*height];
-let image = Image {
-    pixels: pixels.as_mut_slice(),
-    width: width,
-    pitch: 3 * width, // we use no padding between rows
-    height: height,
-    format: PixelFormat::RGB,
-};
-
-// decompress the JPEG data 
-decompressor.decompress_to_slice(jpeg_data, image)?;
-
-// use the raw pixel data
-println!("{:?}", &pixels[0..9]);
-```
-
-See other examples in `examples/` or [read the docs][docs] for more information.
-
-[docs]: https://docs.rs/turbojpeg
-
+[image-rs]: https://docs.rs/image/*/image/index.html
+[compress]: https://docs.rs/turbojpeg/*/turbojpeg/fn.compress_image.html
+[decompress]: https://docs.rs/turbojpeg/*/turbojpeg/fn.decompress_image.html
+[docs]: https://docs.rs/turbojpeg/
 
 ## Requirements
 
 The low-level binding to `libturbojpeg` is provided by the crate
 `turbojpeg-sys`, which needs:
 
-- C headers to generate the Rust binding code using [`bindgen`][bindgen].
+- Rust binding code generated from C headers using [`bindgen`][bindgen].
 - Linker flags that `rustc` will use to link against `libturbojpeg`.
 
 By default, the `turbojpeg-sys` crate uses a pregenerated Rust binding code (so

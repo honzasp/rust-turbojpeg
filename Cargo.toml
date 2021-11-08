@@ -15,7 +15,7 @@ readme = "README.md"
 doctest = false
 
 [dependencies]
-image = {version = ">=0.23.10", optional = true}
+image = {version = ">=0.23.10", optional = true, default-features = false}
 libc = "^0.2"
 thiserror = "^1.0"
 turbojpeg-sys = {path = "turbojpeg-sys", version = "^0.1.0"}

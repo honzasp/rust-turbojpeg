@@ -1,15 +1,18 @@
 [package]
 name = "turbojpeg"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2018"
+
 authors = ["Jan Špaček <patek.mail@gmail.com>"]
 homepage = "https://github.com/honzasp/rust-turbojpeg"
 repository = "https://github.com/honzasp/rust-turbojpeg"
+documentation = "https://docs.rs/turbojpeg"
 license = "Unlicense"
+readme = "README.md"
+
 keywords = ["jpeg", "image", "decoder", "encoder"]
 categories = ["compression", "api-bindings", "multimedia::images"]
 description = "Fast and easy JPEG encoding and decoding with TurboJPEG"
-readme = "README.md"
 
 [lib]
 doctest = false

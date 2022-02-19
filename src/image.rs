@@ -76,9 +76,3 @@ impl JpegPixel for image::Rgba<u8> {
 impl JpegPixel for image::Luma<u8> {
     const PIXEL_FORMAT: PixelFormat = PixelFormat::GRAY;
 }
-impl JpegPixel for image::Bgr<u8> {
-    const PIXEL_FORMAT: PixelFormat = PixelFormat::BGR;
-}
-impl JpegPixel for image::Bgra<u8> {
-    const PIXEL_FORMAT: PixelFormat = PixelFormat::BGRA;
-}

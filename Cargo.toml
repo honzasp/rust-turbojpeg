@@ -18,14 +18,14 @@ description = "Fast and easy JPEG encoding and decoding with TurboJPEG"
 doctest = false
 
 [dependencies]
-image = {version = ">=0.23.10", optional = true, default-features = false}
+image = {version = ">=0.24", optional = true, default-features = false}
 libc = "^0.2"
 thiserror = "^1.0"
 turbojpeg-sys = {path = "turbojpeg-sys", version = "^0.1.0"}
 
 [dev-dependencies]
 anyhow = {version = "1.0"}
-image = {version = "^0.23.14", features = ["jpeg", "png", "bmp", "farbfeld", "pnm"]}
+image = {version = "^0.24", features = ["jpeg", "png", "bmp", "farbfeld", "pnm"]}
 clap = "2.33"
 
 [features]

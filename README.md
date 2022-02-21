@@ -12,7 +12,7 @@ TurboJPEG is a high-level API provided by [libjpeg-turbo].
 To quickly encode and decode images from the [`image`][image-rs] crate, add this
 to the `[dependencies]` section in your `Cargo.toml`:
 
-    turbojpeg = {version = "0.2", features = ["image"]}
+    turbojpeg = {version = "0.3", features = ["image"]}
 
 and then use the functions [`turbojpeg::decompress_image`][decompress] and
 [`turbojpeg::compress_image`][compress]. For more details, please [see the

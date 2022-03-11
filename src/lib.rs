@@ -30,8 +30,6 @@
 //! - [`RgbaImage`][::image::RgbaImage] (JPEG does not support alpha channel, so alpha is ignored
 //!   when encoding and set to 255 when decoding)
 //! - [`GrayImage`][::image::GrayImage]
-//! - `ImageBuffer<Bgr<u8>, Vec<u8>>`
-//! - `ImageBuffer<Bgra<u8>, Vec<u8>>`
 //! 
 //! [image-rs]: https://docs.rs/image/*/image/index.html
 //! 

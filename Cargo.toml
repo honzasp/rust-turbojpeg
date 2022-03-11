@@ -38,3 +38,4 @@ required-features = ["image"]
 
 [package.metadata.docs.rs]
 features = ["image"]
+rustc-args = ["--cfg", "docsrs"]

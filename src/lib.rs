@@ -125,6 +125,7 @@ pub use common::{PixelFormat, Subsamp, Colorspace, Result, Error};
 pub use compress::Compressor;
 pub use decompress::{Decompressor, DecompressHeader};
 
+use std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "image")]
 mod image;
@@ -132,7 +133,16 @@ mod image;
 #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub use self::image::{JpegPixel, compress_image, decompress_image};
 
-/// An image with pixels of type `T` (typically `&[u8]` or `&mut [u8]`).
+/// An image with pixels of type `T`.
+///
+/// Three variants of this type are commonly used:
+///
+/// - `Image<&[u8]>`: immutable reference to image data (source image for compression by
+/// [`Compressor`])
+/// - `Image<&mut [u8]>`: mutable reference to image data (destination image for decompression by
+/// [`Decompressor`]).
+/// - `Image<Vec<u8>>`: owned image data (can be converted to a reference using
+/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut`][Image::as_deref_mut].
 ///
 /// Data for pixel in row `x` and column `y` is stored in `pixels` at offset `y*pitch +
 /// x*format.size()`.
@@ -153,6 +163,32 @@ pub struct Image<T> {
 }
 
 impl<T> Image<T> {
+    /// Converts from `&Image<T>` to `Image<&T::Target>`.
+    ///
+    /// In particular, this can be used to get `Image<&[u8]>` from `Image<Vec<u8>>`.
+    pub fn as_deref(&self) -> Image<&T::Target> where T: Deref {
+        Image {
+            pixels: self.pixels.deref(),
+            width: self.width,
+            pitch: self.pitch,
+            height: self.height,
+            format: self.format,
+        }
+    }
+
+    /// Converts from `&mut Image<T>` to `Image<&mut T::Target>`.
+    ///
+    /// In particular, this can be used to get `Image<&mut [u8]>` from `Image<Vec<u8>>`.
+    pub fn as_deref_mut(&mut self) -> Image<&mut T::Target> where T: DerefMut {
+        Image {
+            pixels: self.pixels.deref_mut(),
+            width: self.width,
+            pitch: self.pitch,
+            height: self.height,
+            format: self.format,
+        }
+    }
+
     pub(crate) fn assert_valid(&self, pixels_len: usize) {
         let Image { pixels: _, width, pitch, height, format } = *self;
         assert!(pitch >= width*format.size(),

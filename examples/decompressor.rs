@@ -11,10 +11,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let header = decompressor.read_header(&jpeg_data)?;
     let (width, height) = (header.width, header.height);
 
-    // prepare a storage for the raw pixel data
-    let mut pixels = vec![0; 3*width*height];
-    let image = Image {
-        pixels: pixels.as_mut_slice(),
+    // prepare the destination image
+    let mut image = Image {
+        pixels: vec![0; 3 * width * height],
         width: width,
         pitch: 3 * width, // we use no padding between rows
         height: height,
@@ -22,9 +21,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // decompress the JPEG data 
-    decompressor.decompress_to_slice(&jpeg_data, image)?;
+    decompressor.decompress_to_slice(&jpeg_data, image.as_deref_mut())?;
 
     // use the raw pixel data
-    println!("{:?}", &pixels[0..9]);
+    println!("{:?}", &image.pixels[0..9]);
     Ok(())
 }

@@ -115,7 +115,7 @@
 //! [bindgen]: https://rust-lang.github.io/rust-bindgen/
 #![warn(missing_docs)]
 
-pub extern crate turbojpeg_sys as sys;
+pub extern crate turbojpeg_sys as raw;
 pub extern crate libc;
 
 mod buf;

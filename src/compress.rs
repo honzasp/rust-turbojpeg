@@ -1,5 +1,5 @@
 use std::convert::TryInto as _;
-use crate::{Image, sys};
+use crate::{Image, raw};
 use crate::buf::{OwnedBuf, OutputBuf};
 use crate::common::{Subsamp, Result, Error, get_error};
 
@@ -7,7 +7,7 @@ use crate::common::{Subsamp, Result, Error, get_error};
 #[derive(Debug)]
 #[doc(alias = "tjhandle")]
 pub struct Compressor {
-    handle: sys::tjhandle,
+    handle: raw::tjhandle,
     quality: i32,
     subsamp: Subsamp,
 }
@@ -22,7 +22,7 @@ impl Compressor {
     #[doc(alias = "tjInitCompress")]
     pub fn new() -> Result<Compressor> {
         unsafe {
-            let handle = sys::tjInitCompress();
+            let handle = raw::tjInitCompress();
             if !handle.is_null() {
                 Ok(Compressor {
                     handle,
@@ -57,7 +57,7 @@ impl Compressor {
     /// you don't need this level of control, you can use [`compress_to_vec`].
     #[doc(alias = "tjCompress2")]
     #[doc(alias = "tjCompress")]
-    pub fn compress(&mut self, image: Image<&[u8]>, buf: &mut OutputBuf) -> Result<()> {
+    pub fn compress(&mut self, image: Image<&[u8]>, output: &mut OutputBuf) -> Result<()> {
         image.assert_valid(image.pixels.len());
 
         let Image { pixels, width, pitch, height, format } = image;
@@ -65,21 +65,21 @@ impl Compressor {
         let pitch = pitch.try_into().map_err(|_| Error::IntegerOverflow("pitch"))?;
         let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
 
-        let mut buf_len = buf.len as libc::c_ulong;
+        let mut output_len = output.len as libc::c_ulong;
         let res = unsafe {
-            sys::tjCompress2(
+            raw::tjCompress2(
                 self.handle,
                 pixels.as_ptr(), width, pitch, height, format as i32,
-                &mut buf.ptr, &mut buf_len,
+                &mut output.ptr, &mut output_len,
                 self.subsamp as i32, self.quality,
-                if buf.is_owned { 0 } else { sys::TJFLAG_NOREALLOC } as i32
+                if output.is_owned { 0 } else { raw::TJFLAG_NOREALLOC } as i32
             )
         };
-        buf.len = buf_len as usize;
+        output.len = output_len as usize;
 
         if res != 0 {
             Err(unsafe { get_error(self.handle) })
-        } else if buf.ptr.is_null() {
+        } else if output.ptr.is_null() {
             Err(Error::Null())
         } else {
             Ok(())
@@ -123,7 +123,7 @@ impl Compressor {
     pub fn buf_len(&self, width: usize, height: usize) -> Result<usize> {
         let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
         let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-        let len = unsafe { sys::tjBufSize(width, height, self.subsamp as i32) };
+        let len = unsafe { raw::tjBufSize(width, height, self.subsamp as i32) };
         let len = len.try_into().map_err(|_| Error::IntegerOverflow("buf len"))?;
         Ok(len)
     }
@@ -131,6 +131,6 @@ impl Compressor {
 
 impl Drop for Compressor {
     fn drop(&mut self) {
-        unsafe { sys::tjDestroy(self.handle); }
+        unsafe { raw::tjDestroy(self.handle); }
     }
 }

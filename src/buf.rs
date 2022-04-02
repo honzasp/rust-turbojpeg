@@ -32,7 +32,7 @@ impl OwnedBuf {
     /// Panics if `cap` overflows or if the memory cannot be allocated.
     pub fn allocate(cap: usize) -> OwnedBuf {
         let alloc_cap = cap.try_into().expect("'cap' overflowed");
-        let ptr = unsafe { sys::tjAlloc(alloc_cap) };
+        let ptr = unsafe { raw::tjAlloc(alloc_cap) };
         assert!(!ptr.is_null(), "tjAlloc() returned null");
         OwnedBuf { ptr, len: 0 }
     }
@@ -53,7 +53,7 @@ impl OwnedBuf {
 
 impl Drop for OwnedBuf {
     fn drop(&mut self) {
-        unsafe { sys::tjFree(self.ptr) };
+        unsafe { raw::tjFree(self.ptr) };
     }
 }
 
@@ -144,7 +144,7 @@ impl<'a> OutputBuf<'a> {
 impl<'a> Drop for OutputBuf<'a> {
     fn drop(&mut self) {
         if self.is_owned {
-            unsafe { sys::tjFree(self.ptr) };
+            unsafe { raw::tjFree(self.ptr) };
         }
     }
 }

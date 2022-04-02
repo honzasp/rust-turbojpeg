@@ -1,12 +1,12 @@
 use std::convert::TryInto as _;
-use crate::{Image, sys};
+use crate::{Image, raw};
 use crate::common::{Subsamp, Colorspace, Result, Error, get_error};
 
 /// Decompresses JPEG data into raw pixels.
 #[derive(Debug)]
 #[doc(alias = "tjhandle")]
 pub struct Decompressor {
-    handle: sys::tjhandle,
+    handle: raw::tjhandle,
 }
 
 unsafe impl Send for Decompressor {}
@@ -32,7 +32,7 @@ impl Decompressor {
     #[doc(alias = "tjInitDecompress")]
     pub fn new() -> Result<Decompressor> {
         unsafe {
-            let handle = sys::tjInitDecompress();
+            let handle = raw::tjInitDecompress();
             if !handle.is_null() {
                 Ok(Decompressor { handle })
             } else {
@@ -50,7 +50,7 @@ impl Decompressor {
         let mut subsamp = 0;
         let mut colorspace = 0;
         let res = unsafe {
-            sys::tjDecompressHeader3(
+            raw::tjDecompressHeader3(
                 self.handle,
                 jpeg_data.as_ptr(), jpeg_data_len,
                 &mut width, &mut height, &mut subsamp, &mut colorspace,
@@ -85,7 +85,7 @@ impl Decompressor {
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
 
         let res = unsafe {
-            sys::tjDecompress2(
+            raw::tjDecompress2(
                 self.handle,
                 jpeg_data.as_ptr(), jpeg_data_len,
                 pixels.as_mut_ptr(), width, pitch, height, format as i32,

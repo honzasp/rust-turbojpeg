@@ -10,14 +10,14 @@ pub enum PixelFormat {
     /// The red, green, and blue components in the image are stored in 3-byte pixels in the order
     /// R, G, B from lowest to highest byte address within each pixel.
     #[doc(alias = "TJPF_RGB")]
-    RGB = sys::TJPF_TJPF_RGB,
+    RGB = raw::TJPF_TJPF_RGB,
 
     /// BGR pixel format.
     ///
     /// The red, green, and blue components in the image are stored in 3-byte pixels in the order
     /// B, G, R from lowest to highest byte address within each pixel.
     #[doc(alias = "TJPF_BGR")]
-    BGR = sys::TJPF_TJPF_BGR,
+    BGR = raw::TJPF_TJPF_BGR,
 
     /// RGBX pixel format.
     ///
@@ -25,7 +25,7 @@ pub enum PixelFormat {
     /// R, G, B from lowest to highest byte address within each pixel. The X component is ignored
     /// when compressing and undefined when decompressing.
     #[doc(alias = "TJPF_RGBX")]
-    RGBX = sys::TJPF_TJPF_RGBX,
+    RGBX = raw::TJPF_TJPF_RGBX,
 
     /// BGRX pixel format.
     ///
@@ -33,7 +33,7 @@ pub enum PixelFormat {
     /// B, G, R from lowest to highest byte address within each pixel. The X component is ignored
     /// when compressing and undefined when decompressing.
     #[doc(alias = "TJPF_BGRX")]
-    BGRX = sys::TJPF_TJPF_BGRX,
+    BGRX = raw::TJPF_TJPF_BGRX,
 
     /// XBGR pixel format.
     ///
@@ -41,7 +41,7 @@ pub enum PixelFormat {
     /// R, G, B from highest to lowest byte address within each pixel. The X component is ignored
     /// when compressing and undefined when decompressing.
     #[doc(alias = "TJPF_XBGR")]
-    XBGR = sys::TJPF_TJPF_XBGR,
+    XBGR = raw::TJPF_TJPF_XBGR,
 
     /// XRGB pixel format.
     ///
@@ -49,41 +49,41 @@ pub enum PixelFormat {
     /// B, G, R from highest to lowest byte address within each pixel. The X component is ignored
     /// when compressing and undefined when decompressing.
     #[doc(alias = "TJPF_XRGB")]
-    XRGB = sys::TJPF_TJPF_XRGB,
+    XRGB = raw::TJPF_TJPF_XRGB,
 
     /// Grayscale pixel format.
     ///
     /// Each 1-byte pixel represents a luminance (brightness) level from 0 to 255.
     #[doc(alias = "TJPF_GRAY")]
-    GRAY = sys::TJPF_TJPF_GRAY,
+    GRAY = raw::TJPF_TJPF_GRAY,
 
     /// RGBA pixel format.
     ///
     /// This is the same as [`PixelFormat::RGBX`], except that when decompressing, the X component
     /// is guaranteed to be 0xFF, which can be interpreted as an opaque alpha channel.
     #[doc(alias = "TJPF_RGBA")]
-    RGBA = sys::TJPF_TJPF_RGBA,
+    RGBA = raw::TJPF_TJPF_RGBA,
 
     /// BGRA pixel format.
     ///
     /// This is the same as [`PixelFormat::BGRX`], except that when decompressing, the X component
     /// is guaranteed to be 0xFF, which can be interpreted as an opaque alpha channel.
     #[doc(alias = "TJPF_BGRA")]
-    BGRA = sys::TJPF_TJPF_BGRA,
+    BGRA = raw::TJPF_TJPF_BGRA,
 
     /// ABGR pixel format.
     ///
     /// This is the same as [`PixelFormat::XBGR`], except that when decompressing, the X component
     /// is guaranteed to be 0xFF, which can be interpreted as an opaque alpha channel.
     #[doc(alias = "TJPF_ABGR")]
-    ABGR = sys::TJPF_TJPF_ABGR,
+    ABGR = raw::TJPF_TJPF_ABGR,
 
     /// ARGB pixel format.
     ///
     /// This is the same as [`PixelFormat::ARGB`], except that when decompressing, the X component
     /// is guaranteed to be 0xFF, which can be interpreted as an opaque alpha channel.
     #[doc(alias = "TJPF_ARGB")]
-    ARGB = sys::TJPF_TJPF_ARGB,
+    ARGB = raw::TJPF_TJPF_ARGB,
 
     /// CMYK pixel format.
     ///
@@ -98,7 +98,7 @@ pub enum PixelFormat {
     /// library. However, the TurboJPEG API allows for compressing CMYK pixels into a YCCK JPEG
     /// image (see TJCS_YCCK) and decompressing YCCK JPEG images into CMYK pixels.
     #[doc(alias = "TJPF_CMYK")]
-    CMYK = sys::TJPF_TJPF_CMYK,
+    CMYK = raw::TJPF_TJPF_CMYK,
 }
 
 impl PixelFormat {
@@ -138,27 +138,27 @@ pub enum Subsamp {
     /// The JPEG or YUV image will contain one chrominance component for every pixel in the source
     /// image.
     #[doc(alias = "TJSAMP_444")]
-    None = sys::TJSAMP_TJSAMP_444,
+    None = raw::TJSAMP_TJSAMP_444,
 
     /// 2x1 chrominance subsampling (4:2:2).
     ///
     /// The JPEG or YUV image will contain one chrominance component for every 2x1 block of pixels
     /// in the source image.
     #[doc(alias = "TJSAMP_422")]
-    Sub2x1 = sys::TJSAMP_TJSAMP_422,
+    Sub2x1 = raw::TJSAMP_TJSAMP_422,
 
     /// 2x2 chrominance subsampling (4:2:0).
     ///
     /// The JPEG or YUV image will contain one chrominance component for every 2x2 block of pixels
     /// in the source image.
     #[doc(alias = "TJSAMP_420")]
-    Sub2x2 = sys::TJSAMP_TJSAMP_420,
+    Sub2x2 = raw::TJSAMP_TJSAMP_420,
 
     /// Grayscale.
     ///
     /// The JPEG or YUV image will contain no chrominance components.
     #[doc(alias = "TJSAMP_GRAY")]
-    Gray = sys::TJSAMP_TJSAMP_GRAY,
+    Gray = raw::TJSAMP_TJSAMP_GRAY,
 
     /// 1x2 chrominance subsampling (4:4:0).
     ///
@@ -169,7 +169,7 @@ pub enum Subsamp {
     ///
     /// 4:4:0 subsampling is not fully accelerated in libjpeg-turbo.
     #[doc(alias = "TJSAMP_440")]
-    Sub1x2 = sys::TJSAMP_TJSAMP_440,
+    Sub1x2 = raw::TJSAMP_TJSAMP_440,
 
     /// 4x1 chrominance subsampling (4:1:1).
     ///
@@ -183,18 +183,18 @@ pub enum Subsamp {
     ///
     /// 4:1:1 subsampling is not fully accelerated in libjpeg-turbo.
     #[doc(alias = "TJSAMP_411")]
-    Sub4x1 = sys::TJSAMP_TJSAMP_411,
+    Sub4x1 = raw::TJSAMP_TJSAMP_411,
 }
 
 impl Subsamp {
     pub(crate) fn from_u32(subsamp: u32) -> Result<Subsamp> {
         Ok(match subsamp {
-            sys::TJSAMP_TJSAMP_444 => Subsamp::None,
-            sys::TJSAMP_TJSAMP_422 => Subsamp::Sub2x1,
-            sys::TJSAMP_TJSAMP_420 => Subsamp::Sub2x2,
-            sys::TJSAMP_TJSAMP_GRAY => Subsamp::Gray,
-            sys::TJSAMP_TJSAMP_440 => Subsamp::Sub1x2,
-            sys::TJSAMP_TJSAMP_411 => Subsamp::Sub4x1,
+            raw::TJSAMP_TJSAMP_444 => Subsamp::None,
+            raw::TJSAMP_TJSAMP_422 => Subsamp::Sub2x1,
+            raw::TJSAMP_TJSAMP_420 => Subsamp::Sub2x2,
+            raw::TJSAMP_TJSAMP_GRAY => Subsamp::Gray,
+            raw::TJSAMP_TJSAMP_440 => Subsamp::Sub1x2,
+            raw::TJSAMP_TJSAMP_411 => Subsamp::Sub4x1,
             other => return Err(Error::BadSubsamp(other)),
         })
     }
@@ -202,13 +202,13 @@ impl Subsamp {
     /// Get the width of the MCU block for this level of chrominance subsampling.
     #[doc(alias = "tjMCUWidth")]
     pub fn mcu_width(self) -> usize {
-        unsafe { sys::tjMCUWidth[self as usize] as usize }
+        unsafe { raw::tjMCUWidth[self as usize] as usize }
     }
 
     /// Get the height of the MCU block for this level of chrominance subsampling.
     #[doc(alias = "tjMCUHeight")]
     pub fn mcu_height(self) -> usize {
-        unsafe { sys::tjMCUHeight[self as usize] as usize }
+        unsafe { raw::tjMCUHeight[self as usize] as usize }
     }
 }
 
@@ -225,7 +225,7 @@ pub enum Colorspace {
     /// JPEG images can be decompressed to any of the extended RGB pixel formats or grayscale, but
     /// they cannot be decompressed to YUV images.
     #[doc(alias = "TJCS_RGB")]
-    RGB = sys::TJCS_TJCS_RGB,
+    RGB = raw::TJCS_TJCS_RGB,
 
     /// YCbCr colorspace.
     ///
@@ -241,7 +241,7 @@ pub enum Colorspace {
     /// to any of the extended RGB pixel formats or grayscale, or they can be decompressed to YUV
     /// planar images.
     #[doc(alias = "TJCS_YCbCr")]
-    YCbCr = sys::TJCS_TJCS_YCbCr,
+    YCbCr = raw::TJCS_TJCS_YCbCr,
 
     /// Grayscale colorspace.
     ///
@@ -250,7 +250,7 @@ pub enum Colorspace {
     /// any of the extended RGB pixel formats or grayscale, or they can be decompressed to YUV
     /// planar images.
     #[doc(alias = "TJCS_GRAY")]
-    Gray = sys::TJCS_TJCS_GRAY,
+    Gray = raw::TJCS_TJCS_GRAY,
 
     /// CMYK colorspace.
     ///
@@ -258,7 +258,7 @@ pub enum Colorspace {
     /// reordered into image planes, but no colorspace conversion or subsampling is performed. CMYK
     /// JPEG images can only be decompressed to CMYK pixels.
     #[doc(alias = "TJCS_CMYK")]
-    CMYK = sys::TJCS_TJCS_CMYK,
+    CMYK = raw::TJCS_TJCS_CMYK,
 
     /// YCCK colorspace.
     ///
@@ -268,17 +268,17 @@ pub enum Colorspace {
     /// components in the YCCK pixels can be subsampled without incurring major perceptual loss.
     /// YCCK JPEG images can only be compressed from and decompressed to CMYK pixels.
     #[doc(alias = "TJCS_YCCK")]
-    YCCK = sys::TJCS_TJCS_YCCK,
+    YCCK = raw::TJCS_TJCS_YCCK,
 }
 
 impl Colorspace {
     pub(crate) fn from_u32(colorspace: u32) -> Result<Colorspace> {
         Ok(match colorspace {
-            sys::TJCS_TJCS_RGB => Colorspace::RGB,
-            sys::TJCS_TJCS_YCbCr => Colorspace::YCbCr,
-            sys::TJCS_TJCS_GRAY => Colorspace::Gray,
-            sys::TJCS_TJCS_CMYK => Colorspace::CMYK,
-            sys::TJCS_TJCS_YCCK => Colorspace::YCCK,
+            raw::TJCS_TJCS_RGB => Colorspace::RGB,
+            raw::TJCS_TJCS_YCbCr => Colorspace::YCbCr,
+            raw::TJCS_TJCS_GRAY => Colorspace::Gray,
+            raw::TJCS_TJCS_CMYK => Colorspace::CMYK,
+            raw::TJCS_TJCS_YCCK => Colorspace::YCCK,
             other => return Err(Error::BadColorspace(other)),
         })
     }
@@ -312,7 +312,7 @@ pub enum Error {
     IntegerOverflow(&'static str),
 }
 
-pub(crate) unsafe fn get_error(handle: sys::tjhandle) -> Error {
-    let msg = CStr::from_ptr(sys::tjGetErrorStr2(handle));
+pub(crate) unsafe fn get_error(handle: raw::tjhandle) -> Error {
+    let msg = CStr::from_ptr(raw::tjGetErrorStr2(handle));
     Error::TurboJpegError(msg.to_string_lossy().into_owned())
 }

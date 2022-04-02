@@ -1,10 +1,11 @@
 use std::convert::TryInto as _;
-use std::{ptr, slice};
 use crate::{Image, sys};
+use crate::buf::{OwnedBuf, OutputBuf};
 use crate::common::{Subsamp, Result, Error, get_error};
 
 /// Compresses raw pixel data into JPEG.
 #[derive(Debug)]
+#[doc(alias = "tjhandle")]
 pub struct Compressor {
     handle: sys::tjhandle,
     quality: i32,
@@ -15,13 +16,6 @@ static DEFAULT_QUALITY: i32 = 95;
 static DEFAULT_SUBSAMP: Subsamp = Subsamp::None;
 
 unsafe impl Send for Compressor {}
-
-#[derive(Debug)]
-struct CompressBuf {
-    ptr: *mut u8,
-    len: usize,
-    owned: bool,
-}
 
 impl Compressor {
     /// Create a new compressor instance.
@@ -57,7 +51,13 @@ impl Compressor {
         self.subsamp = subsamp;
     }
 
-    fn raw_compress(&mut self, image: Image<&[u8]>, buf: &mut CompressBuf) -> Result<()> {
+    /// Compresses the `image` into a buffer.
+    ///
+    /// This is the main compression method, which gives you full control of the output buffer. If
+    /// you don't need this level of control, you can use [`compress_to_vec`].
+    #[doc(alias = "tjCompress2")]
+    #[doc(alias = "tjCompress")]
+    pub fn compress(&mut self, image: Image<&[u8]>, buf: &mut OutputBuf) -> Result<()> {
         image.assert_valid(image.pixels.len());
 
         let Image { pixels, width, pitch, height, format } = image;
@@ -72,7 +72,7 @@ impl Compressor {
                 pixels.as_ptr(), width, pitch, height, format as i32,
                 &mut buf.ptr, &mut buf_len,
                 self.subsamp as i32, self.quality,
-                if buf.owned { 0 } else { sys::TJFLAG_NOREALLOC } as i32
+                if buf.is_owned { 0 } else { sys::TJFLAG_NOREALLOC } as i32
             )
         };
         buf.len = buf_len as usize;
@@ -86,30 +86,34 @@ impl Compressor {
         }
     }
 
-    /// Compress the `image` into a new `Vec<u8>`.
+    /// Compresses the `image` into an owned buffer.
     ///
-    /// This method is simpler than [`compress_to_slice`](Compressor::compress_to_slice), but it
-    /// requires multiple allocations and copies the output data from internal buffer to a `Vec`.
-    #[doc(alias = "tjCompress2")]
-    #[doc(alias = "tjCompress")]
-    pub fn compress_to_vec(&mut self, image: Image<&[u8]>) -> Result<Vec<u8>> {
-        let mut buf = CompressBuf { ptr: ptr::null_mut(), len: 0, owned: true };
-        self.raw_compress(image, &mut buf)?;
-        let buf_slice = unsafe { slice::from_raw_parts(buf.ptr, buf.len) };
-        Ok(buf_slice.to_vec())
+    /// This method automatically allocates the memory and avoids needless copying.
+    pub fn compress_to_owned(&mut self, image: Image<&[u8]>) -> Result<OwnedBuf> {
+        let mut buf = OutputBuf::new_owned();
+        self.compress(image, &mut buf)?;
+        Ok(buf.into_owned())
     }
 
-    /// Compress the `image` into the buffer `dest`.
+    /// Compress the `image` into a new `Vec<u8>`.
+    ///
+    /// This method copies the compressed data into a new `Vec`. If you would like to avoid the
+    /// extra allocation and copying, consider using [`compress_to_owned`] instead.
+    pub fn compress_to_vec(&mut self, image: Image<&[u8]>) -> Result<Vec<u8>> {
+        let mut buf = OutputBuf::new_owned();
+        self.compress(image, &mut buf)?;
+        Ok(buf.to_vec())
+    }
+
+    /// Compress the `image` into the slice `dest`.
     ///
     /// Returns the size of the compressed image. If the compressed image does not fit into `dest`,
     /// this method returns an error. Use [`buf_len`](Compressor::buf_len) to determine buffer size
-    /// that is guaranteed to be large enough to compress the `image`.
-    #[doc(alias = "tjCompress2")]
-    #[doc(alias = "tjCompress")]
+    /// that is guaranteed to be large enough for the compressed image.
     pub fn compress_to_slice(&mut self, image: Image<&[u8]>, dest: &mut [u8]) -> Result<usize> {
-        let mut buf = CompressBuf { ptr: dest.as_mut_ptr(), len: dest.len(), owned: false };
-        self.raw_compress(image, &mut buf)?;
-        Ok(buf.len)
+        let mut buf = OutputBuf::borrowed(dest);
+        self.compress(image, &mut buf)?;
+        Ok(buf.len())
     }
 
     /// Compute the maximum size of a compressed image.
@@ -128,13 +132,5 @@ impl Compressor {
 impl Drop for Compressor {
     fn drop(&mut self) {
         unsafe { sys::tjDestroy(self.handle); }
-    }
-}
-
-impl Drop for CompressBuf {
-    fn drop(&mut self) {
-        if self.owned {
-            unsafe { sys::tjFree(self.ptr) };
-        }
     }
 }

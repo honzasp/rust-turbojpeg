@@ -1,78 +1,69 @@
-use crate::Image;
-use crate::compress::Compressor;
-use crate::common::{PixelFormat, Result, Subsamp};
-use crate::decompress::Decompressor;
+use std::ops::{Deref, DerefMut};
+use crate::common::PixelFormat;
 
-/// Decompresses image from JPEG into an [`ImageBuffer`][image::ImageBuffer].
-pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec<u8>>>
-    where P: JpegPixel + 'static
-{
-    let mut decompressor = Decompressor::new()?;
-    let header = decompressor.read_header(jpeg_data)?;
-
-    let pitch = header.width * P::PIXEL_FORMAT.size();
-    let mut image_data = vec![0; pitch * header.height];
-    let image = Image {
-        pixels: &mut image_data[..],
-        width: header.width,
-        pitch,
-        height: header.height,
-        format: P::PIXEL_FORMAT,
-    };
-    decompressor.decompress_to_slice(jpeg_data, image)?;
-
-    let image_buf = image::ImageBuffer::from_raw(
-        header.width as u32,
-        header.height as u32,
-        image_data,
-    ).unwrap();
-    Ok(image_buf)
-}
-
-/// Compresses an [`ImageBuffer`][image::ImageBuffer] into JPEG.
+/// An image with pixels of type `T`.
 ///
-/// `quality` controls the tradeoff between image quality and size of the compressed image. It
-/// ranges from 1 (worst quality, smallest size) to 100 (best quality, largest size).
+/// Three variants of this type are commonly used:
 ///
-/// `subsamp` sets the level of chrominance subsampling of the compressed JPEG image (please see
-/// the documentation of [`Subsamp`] for details). Use [`Subsamp::None`] for no subsampling
-/// (highest quality).
-pub fn compress_image<P>(
-    image_buf: &image::ImageBuffer<P, Vec<u8>>,
-    quality: i32,
-    subsamp: Subsamp,
-) -> Result<Vec<u8>> 
-    where P: JpegPixel + 'static
-{
-    let (width, height) = image_buf.dimensions();
-    let format = P::PIXEL_FORMAT;
-    let image = Image {
-        pixels: &image_buf.as_raw()[..],
-        width: width as usize,
-        pitch: format.size() * width as usize,
-        height: height as usize,
-        format,
-    };
-
-    let mut compressor = Compressor::new()?;
-    compressor.set_quality(quality);
-    compressor.set_subsamp(subsamp);
-    compressor.compress_to_vec(image)
+/// - `Image<&[u8]>`: immutable reference to image data (input image for compression by
+/// [`Compressor`])
+/// - `Image<&mut [u8]>`: mutable reference to image data (output image for decompression by
+/// [`Decompressor`]).
+/// - `Image<Vec<u8>>`: owned image data (you can convert to a reference using
+/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut`][Image::as_deref_mut].
+///
+/// Data for pixel in row `x` and column `y` is stored in `pixels` at offset `y*pitch +
+/// x*format.size()`.
+#[derive(Debug, Copy, Clone)]
+pub struct Image<T> {
+    /// Pixel data of the image (typically `&[u8]` or `&mut [u8]`).
+    pub pixels: T,
+    /// Width of the image in pixels (number of columns).
+    pub width: usize,
+    /// Pitch (stride) defines the size of one image row in bytes. Overlapping rows are not
+    /// supported, so we require that `pitch >= width * format.size()`.
+    pub pitch: usize,
+    /// Height of the image in pixels (number of rows).
+    pub height: usize,
+    /// Format of pixels in memory, determines the color format (RGB, RGBA, grayscale or CMYK) and
+    /// the memory layout (RGB, BGR, RGBA, ...).
+    pub format: PixelFormat,
 }
 
-/// Trait implemented for [`Pixel`s][image::Pixel] that correspond to a [`PixelFormat`] supported
-/// by TurboJPEG.
-pub trait JpegPixel: image::Pixel<Subpixel = u8> {
-    /// The TurboJPEG pixel format that corresponds to this pixel type.
-    const PIXEL_FORMAT: PixelFormat;
+impl<T> Image<T> {
+    /// Converts from `&Image<T>` to `Image<&T::Target>`.
+    ///
+    /// In particular, you can use this to get `Image<&[u8]>` from `Image<Vec<u8>>`.
+    pub fn as_deref(&self) -> Image<&T::Target> where T: Deref {
+        Image {
+            pixels: self.pixels.deref(),
+            width: self.width,
+            pitch: self.pitch,
+            height: self.height,
+            format: self.format,
+        }
+    }
+
+    /// Converts from `&mut Image<T>` to `Image<&mut T::Target>`.
+    ///
+    /// In particular, you can use this to get `Image<&mut [u8]>` from `Image<Vec<u8>>`.
+    pub fn as_deref_mut(&mut self) -> Image<&mut T::Target> where T: DerefMut {
+        Image {
+            pixels: self.pixels.deref_mut(),
+            width: self.width,
+            pitch: self.pitch,
+            height: self.height,
+            format: self.format,
+        }
+    }
+
+    pub(crate) fn assert_valid(&self, pixels_len: usize) {
+        let Image { pixels: _, width, pitch, height, format } = *self;
+        assert!(pitch >= width*format.size(),
+            "pitch {} is too small for width {} and pixel format {:?}", pitch, width, format);
+        assert!(height == 0 || pitch*(height - 1) + width*format.size() <= pixels_len,
+            "pixels length {} is too small for width {}, height {}, pitch {} and pixel format {:?}",
+            pixels_len, width, height, pitch, format);
+    }
 }
 
-impl JpegPixel for image::Rgb<u8> {
-    const PIXEL_FORMAT: PixelFormat = PixelFormat::RGB;
-}
-impl JpegPixel for image::Rgba<u8> {
-    const PIXEL_FORMAT: PixelFormat = PixelFormat::RGBA;
-}
-impl JpegPixel for image::Luma<u8> {
-    const PIXEL_FORMAT: PixelFormat = PixelFormat::GRAY;
-}

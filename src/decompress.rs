@@ -4,6 +4,7 @@ use crate::common::{Subsamp, Colorspace, Result, Error, get_error};
 
 /// Decompresses JPEG data into raw pixels.
 #[derive(Debug)]
+#[doc(alias = "tjhandle")]
 pub struct Decompressor {
     handle: sys::tjhandle,
 }
@@ -11,6 +12,9 @@ pub struct Decompressor {
 unsafe impl Send for Decompressor {}
 
 /// JPEG header that describes the compressed image.
+///
+/// The header can be obtained without decompressing the image by calling
+/// [`Decompressor::read_header`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DecompressHeader {
     /// Width of the image in pixels (number of columns).

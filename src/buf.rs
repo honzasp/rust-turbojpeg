@@ -1,5 +1,5 @@
 use std::{ptr, slice};
-use std::convert::TryInto;
+use std::convert::{AsRef, AsMut};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
@@ -16,9 +16,14 @@ impl Deref for OwnedBuf {
     type Target = [u8];
     fn deref(&self) -> &[u8] { unsafe { deref(self.ptr, self.len) } }
 }
-
 impl DerefMut for OwnedBuf {
     fn deref_mut(&mut self) -> &mut [u8] { unsafe { deref_mut(self.ptr, self.len) } }
+}
+impl AsRef<[u8]> for OwnedBuf {
+    fn as_ref(&self) -> &[u8] { self.deref() }
+}
+impl AsMut<[u8]> for OwnedBuf {
+    fn as_mut(&mut self) -> &mut [u8] { self.deref_mut() }
 }
 
 impl OwnedBuf {
@@ -27,14 +32,13 @@ impl OwnedBuf {
         OwnedBuf { ptr: ptr::null_mut(), len: 0 }
     }
 
-    /// Allocates a buffer with given capacity.
+    /// Allocates a buffer with given length.
     ///
-    /// Panics if `cap` overflows or if the memory cannot be allocated.
-    pub fn allocate(cap: usize) -> OwnedBuf {
-        let alloc_cap = cap.try_into().expect("'cap' overflowed");
-        let ptr = unsafe { raw::tjAlloc(alloc_cap) };
+    /// Panics if `len` overflows or if the memory cannot be allocated.
+    pub fn allocate(len: usize) -> OwnedBuf {
+        let ptr = unsafe { raw::tjAlloc(len as libc::c_int) };
         assert!(!ptr.is_null(), "tjAlloc() returned null");
-        OwnedBuf { ptr, len: 0 }
+        OwnedBuf { ptr, len }
     }
 
     /// Creates a new buffer copied from a slice.
@@ -48,7 +52,6 @@ impl OwnedBuf {
     pub fn len(&self) -> usize {
         self.len
     }
-
 }
 
 impl Drop for OwnedBuf {
@@ -86,9 +89,14 @@ impl<'a> Deref for OutputBuf<'a> {
     type Target = [u8];
     fn deref(&self) -> &[u8] { unsafe { deref(self.ptr, self.len) } }
 }
-
 impl<'a> DerefMut for OutputBuf<'a> {
     fn deref_mut(&mut self) -> &mut [u8] { unsafe { deref_mut(self.ptr, self.len) } }
+}
+impl<'a> AsRef<[u8]> for OutputBuf<'a> {
+    fn as_ref(&self) -> &[u8] { self.deref() }
+}
+impl<'a> AsMut<[u8]> for OutputBuf<'a> {
+    fn as_mut(&mut self) -> &mut [u8] { self.deref_mut() }
 }
 
 
@@ -104,10 +112,12 @@ impl<'a> OutputBuf<'a> {
     }
 
     /// Converts an `OwnedBuf` into an owned `OutputBuf`.
-    pub fn owned(buf: OwnedBuf) -> OutputBuf<'a> {
+    pub fn owned(mut buf: OwnedBuf) -> OutputBuf<'a> {
+        let OwnedBuf { ptr, len } = buf;
+        buf.ptr = ptr::null_mut(); // do not free the pointer in the OwnedBuf destructor
         OutputBuf {
-            ptr: buf.ptr,
-            len: buf.len,
+            ptr,
+            len,
             is_owned: true,
             _phantom: PhantomData,
         }
@@ -132,11 +142,15 @@ impl<'a> OutputBuf<'a> {
     ///
     /// If `self` is owned, this is a trivial operation, otherwise we must copy the data from the
     /// borrowed slice into a new owned buffer.
-    pub fn into_owned(&self) -> OwnedBuf {
-        if self.is_owned {
-            OwnedBuf { ptr: self.ptr, len: self.len }
+    pub fn into_owned(mut self) -> OwnedBuf {
+        let OutputBuf { ptr, len, is_owned, .. } = self;
+        self.ptr = ptr::null_mut(); // do not free the pointer in OutputBuf destructor
+        if is_owned {
+            OwnedBuf { ptr, len }
         } else {
-            OwnedBuf::copy_from_slice(&self)
+            unsafe {
+                OwnedBuf::copy_from_slice(slice::from_raw_parts(ptr, len))
+            }
         }
     }
 }

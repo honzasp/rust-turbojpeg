@@ -123,14 +123,17 @@ mod common;
 mod compress;
 mod decompress;
 mod image;
+mod transform;
 pub use buf::{OwnedBuf, OutputBuf};
-pub use common::{PixelFormat, Subsamp, Colorspace, Result, Error};
+pub use common::{PixelFormat, Subsamp, Colorspace, Result, Error, compressed_buf_len};
 pub use compress::Compressor;
 pub use decompress::{Decompressor, DecompressHeader};
 pub use image::Image;
+pub use transform::{Transformer, Transform, TransformOp, TransformCrop};
 
 #[cfg(feature = "image")]
 mod image_rs;
 #[cfg(feature = "image")]
 #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub use self::image_rs::{JpegPixel, compress_image, decompress_image};
+

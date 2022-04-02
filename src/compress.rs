@@ -69,10 +69,10 @@ impl Compressor {
         let res = unsafe {
             raw::tjCompress2(
                 self.handle,
-                pixels.as_ptr(), width, pitch, height, format as i32,
+                pixels.as_ptr(), width, pitch, height, format as libc::c_int,
                 &mut output.ptr, &mut output_len,
-                self.subsamp as i32, self.quality,
-                if output.is_owned { 0 } else { raw::TJFLAG_NOREALLOC } as i32
+                self.subsamp as libc::c_int, self.quality,
+                if output.is_owned { 0 } else { raw::TJFLAG_NOREALLOC } as libc::c_int,
             )
         };
         output.len = output_len as usize;
@@ -80,6 +80,7 @@ impl Compressor {
         if res != 0 {
             Err(unsafe { get_error(self.handle) })
         } else if output.ptr.is_null() {
+            output.len = 0;
             Err(Error::Null())
         } else {
             Ok(())
@@ -105,13 +106,13 @@ impl Compressor {
         Ok(buf.to_vec())
     }
 
-    /// Compress the `image` into the slice `dest`.
+    /// Compress the `image` into the slice `output`.
     ///
-    /// Returns the size of the compressed image. If the compressed image does not fit into `dest`,
-    /// this method returns an error. Use [`buf_len`](Compressor::buf_len) to determine buffer size
-    /// that is guaranteed to be large enough for the compressed image.
-    pub fn compress_to_slice(&mut self, image: Image<&[u8]>, dest: &mut [u8]) -> Result<usize> {
-        let mut buf = OutputBuf::borrowed(dest);
+    /// Returns the size of the compressed JPEG data. If the compressed image does not fit into
+    /// `dest`, this method returns an error. Use [`buf_len`](Compressor::buf_len) to determine
+    /// buffer size that is guaranteed to be large enough for the compressed image.
+    pub fn compress_to_slice(&mut self, image: Image<&[u8]>, output: &mut [u8]) -> Result<usize> {
+        let mut buf = OutputBuf::borrowed(output);
         self.compress(image, &mut buf)?;
         Ok(buf.len())
     }
@@ -119,13 +120,12 @@ impl Compressor {
     /// Compute the maximum size of a compressed image.
     ///
     /// This depends on image `width` and `height`, and also on the current setting of chrominance
-    /// subsampling (see [`set_subsamp()`](Compressor::set_subsamp).
+    /// subsampling (see [`set_subsamp`](Compressor::set_subsamp).
+    ///
+    /// Note that this just calls [`compressed_buf_len`].
+    #[doc(alias = "tjBufSize")]
     pub fn buf_len(&self, width: usize, height: usize) -> Result<usize> {
-        let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-        let len = unsafe { raw::tjBufSize(width, height, self.subsamp as i32) };
-        let len = len.try_into().map_err(|_| Error::IntegerOverflow("buf len"))?;
-        Ok(len)
+        super::compressed_buf_len(width, height, self.subsamp)
     }
 }
 

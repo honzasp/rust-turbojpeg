@@ -5,7 +5,7 @@ use clap::clap_app;
 use turbojpeg::{Decompressor, Image, PixelFormat};
 
 fn main() -> Result<()> {
-    let args = clap_app!(cjpeg =>
+    let args = clap_app!(djpeg =>
         (about: "Decompresses an image from JPEG")
         (@arg INPUT: <input> "Input JPEG file")
         (@arg OUTPUT: <output> "Output image file")

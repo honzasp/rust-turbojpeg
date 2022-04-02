@@ -10,9 +10,9 @@ documentation = "https://docs.rs/turbojpeg"
 license = "Unlicense"
 readme = "README.md"
 
-keywords = ["jpeg", "image", "decoder", "encoder"]
+keywords = ["jpeg", "image", "decoder", "encoder", "transform"]
 categories = ["compression", "api-bindings", "multimedia::images"]
-description = "Fast and easy JPEG encoding and decoding with TurboJPEG"
+description = "Fast and easy JPEG encoding, decoding and lossless transforms with TurboJPEG"
 
 [lib]
 doctest = false

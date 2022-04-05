@@ -51,10 +51,10 @@ impl Compressor {
         self.subsamp = subsamp;
     }
 
-    /// Compresses the `image` into a buffer.
+    /// Compresses the `image` into `output` buffer.
     ///
     /// This is the main compression method, which gives you full control of the output buffer. If
-    /// you don't need this level of control, you can use [`compress_to_vec`].
+    /// you don't need this level of control, you can use one of the convenience wrappers below.
     #[doc(alias = "tjCompress2")]
     #[doc(alias = "tjCompress")]
     pub fn compress(&mut self, image: Image<&[u8]>, output: &mut OutputBuf) -> Result<()> {
@@ -99,7 +99,8 @@ impl Compressor {
     /// Compress the `image` into a new `Vec<u8>`.
     ///
     /// This method copies the compressed data into a new `Vec`. If you would like to avoid the
-    /// extra allocation and copying, consider using [`compress_to_owned`] instead.
+    /// extra allocation and copying, consider using [`compress_to_owned()`][Self::compress_to_owned]
+    /// instead.
     pub fn compress_to_vec(&mut self, image: Image<&[u8]>) -> Result<Vec<u8>> {
         let mut buf = OutputBuf::new_owned();
         self.compress(image, &mut buf)?;
@@ -109,7 +110,7 @@ impl Compressor {
     /// Compress the `image` into the slice `output`.
     ///
     /// Returns the size of the compressed JPEG data. If the compressed image does not fit into
-    /// `dest`, this method returns an error. Use [`buf_len`](Compressor::buf_len) to determine
+    /// `dest`, this method returns an error. Use [`buf_len()`](Compressor::buf_len) to determine
     /// buffer size that is guaranteed to be large enough for the compressed image.
     pub fn compress_to_slice(&mut self, image: Image<&[u8]>, output: &mut [u8]) -> Result<usize> {
         let mut buf = OutputBuf::borrowed(output);
@@ -120,9 +121,9 @@ impl Compressor {
     /// Compute the maximum size of a compressed image.
     ///
     /// This depends on image `width` and `height`, and also on the current setting of chrominance
-    /// subsampling (see [`set_subsamp`](Compressor::set_subsamp).
+    /// subsampling (see [`set_subsamp()`](Compressor::set_subsamp)).
     ///
-    /// Note that this just calls [`compressed_buf_len`].
+    /// You can also use [`compressed_buf_len()`] directly.
     #[doc(alias = "tjBufSize")]
     pub fn buf_len(&self, width: usize, height: usize) -> Result<usize> {
         super::compressed_buf_len(width, height, self.subsamp)
@@ -133,4 +134,30 @@ impl Drop for Compressor {
     fn drop(&mut self) {
         unsafe { raw::tjDestroy(self.handle); }
     }
+}
+
+/// Compress a JPEG image.
+/// 
+/// Uses the given quality and chrominance subsampling option and returns the JPEG data in a buffer
+/// owned by TurboJPEG. If this function does not fit your needs, please see [`Compressor`].
+pub fn compress(image: Image<&[u8]>, quality: i32, subsamp: Subsamp) -> Result<OwnedBuf> {
+    let mut compressor = Compressor::new()?;
+    compressor.set_quality(quality);
+    compressor.set_subsamp(subsamp);
+    compressor.compress_to_owned(image)
+}
+
+/// Compute the maximum size of a compressed image.
+///
+/// This depends on image `width` and `height` and also on the chrominance subsampling method.
+///
+/// Returns an error on integer overflow (you can just `.unwrap()` the result if you don't care
+/// about this edge case).
+#[doc(alias = "tjBufSize")]
+pub fn compressed_buf_len(width: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
+    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+    let len = unsafe { raw::tjBufSize(width, height, subsamp as libc::c_int) };
+    let len = len.try_into().map_err(|_| Error::IntegerOverflow("buf len"))?;
+    Ok(len)
 }

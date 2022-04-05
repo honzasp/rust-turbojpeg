@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // decompress the JPEG data 
-    decompressor.decompress_to_slice(&jpeg_data, image.as_deref_mut())?;
+    decompressor.decompress(&jpeg_data, image.as_deref_mut())?;
 
     // use the raw pixel data
     println!("{:?}", &image.pixels[0..9]);

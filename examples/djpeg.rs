@@ -24,7 +24,7 @@ fn main() -> Result<()> {
     assert_eq!(strides.1, 3);
     assert_eq!(extents.0, 3);
 
-    decompressor.decompress_to_slice(&image_jpeg, Image {
+    decompressor.decompress(&image_jpeg, Image {
         pixels: image_flat.as_mut_slice(),
         width: extents.1,
         pitch: strides.2,

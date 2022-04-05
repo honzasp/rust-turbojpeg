@@ -31,7 +31,7 @@ fn main() -> Result<()> {
         compressor.set_quality(quality);
     }
 
-    let image_jpeg = compressor.compress_to_vec(Image {
+    let image_jpeg = compressor.compress_to_owned(Image {
         pixels: image_flat.as_slice(),
         width: extents.1,
         pitch: strides.2,

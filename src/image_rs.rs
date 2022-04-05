@@ -19,7 +19,7 @@ pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec
         height: header.height,
         format: P::PIXEL_FORMAT,
     };
-    decompressor.decompress_to_slice(jpeg_data, image)?;
+    decompressor.decompress(jpeg_data, image)?;
 
     let image_buf = image::ImageBuffer::from_raw(
         header.width as u32,

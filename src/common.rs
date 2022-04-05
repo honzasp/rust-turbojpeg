@@ -1,4 +1,3 @@
-use std::convert::TryInto as _;
 use std::ffi::CStr;
 
 /// Pixel format determines the layout of pixels in memory.
@@ -316,19 +315,4 @@ pub enum Error {
 pub(crate) unsafe fn get_error(handle: raw::tjhandle) -> Error {
     let msg = CStr::from_ptr(raw::tjGetErrorStr2(handle));
     Error::TurboJpegError(msg.to_string_lossy().into_owned())
-}
-
-/// Compute the maximum size of a compressed image.
-///
-/// This depends on image `width` and `height` and also on the chrominance subsampling method.
-///
-/// Returns an error on integer overflow (you can just `.unwrap()` the result if you don't care
-/// about this edge case).
-#[doc(alias = "tjBufSize")]
-pub fn compressed_buf_len(width: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
-    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-    let len = unsafe { raw::tjBufSize(width, height, subsamp as libc::c_int) };
-    let len = len.try_into().map_err(|_| Error::IntegerOverflow("buf len"))?;
-    Ok(len)
 }

@@ -1,7 +1,7 @@
 //! Rust bindings for TurboJPEG, which provides simple and fast compression/decompression of JPEG
 //! images.
 //!
-//! # High-level usage with image-rs
+//! # Easy usage with image-rs
 //! 
 //! To easily encode and decode images from the [`image`][image-rs] crate, please
 //! enable the optional dependency by adding this to the `[dependencies]` section of
@@ -11,8 +11,8 @@
 //! turbojpeg = {version = "^0.2", features = ["image"]}
 //! ```
 //! 
-//! Then you can use the functions [`decompress_image`] and
-//! [`compress_image`] to easily decode and encode JPEG:
+//! Then you can use the functions [`decompress_image()`] and
+//! [`compress_image()`] to easily decode and encode JPEG:
 //! 
 //! ```rust
 //! // create an `image::RgbImage`
@@ -32,79 +32,35 @@
 //! - [`GrayImage`][::image::GrayImage]
 //! 
 //! [image-rs]: https://docs.rs/image/*/image/index.html
-//! 
-//! # Low-level usage with `Compressor`/`Decompressor`
-//! 
-//! Use [`Compressor`] to compress raw pixel data into JPEG
-//! (see [`examples/compressor.rs`][compressor-example] for full example):
 //!
-//! [compressor-example]: https://github.com/honzasp/rust-turbojpeg/blob/master/examples/compressor.rs
-//! 
-//! ```rust
-//! use turbojpeg::{Compressor, Image, PixelFormat};
-//! 
-//! // prepare the raw pixel data
-//! let width: usize = ...;
-//! let height: usize = ...;
-//! let pixels: Vec<u8> = ...;
-//! 
-//! // initialize a Compressor
-//! let mut compressor = Compressor::new()?;
-//! 
-//! // create an Image that bundles a reference to the raw pixel data (as &[u8])
-//! // with information about the image format
-//! let image = Image {
-//!     // &[u8] reference to the pixel data
-//!     pixels: pixels.as_slice(),
-//!     // width of the image in pixels
-//!     width: width,
-//!     // size of the image row in bytes (also called "stride")
-//!     pitch: 3 * width,
-//!     // height of the image in pixels
-//!     height: height,
-//!     // format of the pixel data
-//!     format: PixelFormat::RGB,
-//! };
+//! # The [`Image`] type
 //!
-//! // compress the Image to a Vec<u8> of JPEG data
-//! let jpeg_data = compressor.compress_to_vec(image)?;
-//! ```
-//! 
-//! To decompress JPEG data into a raw pixel data, use [`Decompressor`] (full example in
-//! [`examples/decompressor.rs`][decompressor-example]):
+//! For more advanced usage of TurboJPEG, you will need to use the [`Image`] type. This is a simple
+//! struct that contains the geometry of the image (width, height and pitch/stride), pixel format
+//! (such as RGB, ABGR or grayscale) and the pixel data itself.
 //!
-//! [decompressor-example]: https://github.com/honzasp/rust-turbojpeg/blob/master/examples/decompressor.rs
-//! 
-//! ```rust
-//! use turbojpeg::{Decompressor, Image, PixelFormat};
-//! 
-//! // get the JPEG data
-//! let jpeg_data: &[u8] = ...;
-//! 
-//! // initialize a Decompressor
-//! let mut decompressor = Decompressor::new()?;
-//! 
-//! // read the JPEG header with image size
-//! let header = decompressor.read_header(jpeg_data)?;
-//! let (width, height) = (header.width, header.height);
-//! 
-//! // prepare a storage for the raw pixel data
-//! let mut pixels = vec![0; 3*width*height];
-//! let image = Image {
-//!     // &mut [u8] reference to the image data
-//!     pixels: pixels.as_mut_slice(),
-//!     width: width,
-//!     pitch: 3 * width,
-//!     height: height,
-//!     format: PixelFormat::RGB,
-//! };
-//! 
-//! // decompress the JPEG data 
-//! decompressor.decompress_to_slice(jpeg_data, image)?;
-//! 
-//! // use the raw pixel data
-//! println!("{:?}", &pixels[0..9]);
-//! ```
+//! [`Image`] is parameterized by the pixel data container, so you will use `Image<&[u8]>` as input
+//! argument for compression, `Image<&out [u8]>` as output argument for decompression, and you may
+//! also find `Image<Vec<u8>>` useful as an owned container of image data in you application.
+//!
+//! # The [`OutputBuf`] and [`OwnedBuf`] types
+//!
+//! During decompression, we need to write the produced JPEG data into some memory buffer. You have
+//! two options:
+//!
+//! - Write the data into a mutable slice (`&mut [u8]`) that you already allocated and initialized.
+//! This has the disadvantage that you must allocate all memory up front, so you need to make the
+//! buffer very large to ensure that it can hold the compressed image in the worst case, when the
+//! compression does not reduce the image size at all. You will also need to initialize the memory
+//! to comply with the Rust safety requirements.
+//!
+//! - Write the data into a memory buffer managed by TurboJPEG. This has the advantage that
+//! TurboJPEG can automatically resize the buffer, so we don't have to conservatively allocate and
+//! initialize a large chunk of memory, but we can let TurboJPEG grow the buffer as needed. This
+//! kind of buffer is exposed as the [`OwnedBuf`].
+//!
+//! To handle both of these cases, this crate provides the [`OutputBuf`] type, which can hold
+//! either a `&mut [u8]` or an `OwnedBuf`.
 //! 
 //! # Features
 //!
@@ -124,12 +80,12 @@ mod compress;
 mod decompress;
 mod image;
 mod transform;
-pub use buf::{OwnedBuf, OutputBuf};
-pub use common::{PixelFormat, Subsamp, Colorspace, Result, Error, compressed_buf_len};
-pub use compress::Compressor;
-pub use decompress::{Decompressor, DecompressHeader};
-pub use image::Image;
-pub use transform::{Transformer, Transform, TransformOp, TransformCrop};
+pub use self::buf::{OwnedBuf, OutputBuf};
+pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
+pub use self::compress::{Compressor, compress, compressed_buf_len};
+pub use self::decompress::{Decompressor, DecompressHeader, decompress};
+pub use self::image::Image;
+pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};
 
 #[cfg(feature = "image")]
 mod image_rs;

@@ -6,22 +6,22 @@ use crate::common::PixelFormat;
 /// Three variants of this type are commonly used:
 ///
 /// - `Image<&[u8]>`: immutable reference to image data (input image for compression by
-/// [`Compressor`])
+/// [`Compressor`][crate::Compressor])
 /// - `Image<&mut [u8]>`: mutable reference to image data (output image for decompression by
-/// [`Decompressor`]).
-/// - `Image<Vec<u8>>`: owned image data (you can convert to a reference using
-/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut`][Image::as_deref_mut].
+/// [`Decompressor`][crate::Compressor]).
+/// - `Image<Vec<u8>>`: owned image data (you can convert it to a reference using
+/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
 ///
-/// Data for pixel in row `x` and column `y` is stored in `pixels` at offset `y*pitch +
+/// Data for pixel in column `x` and row `y` is stored in `pixels` at offset `y*pitch +
 /// x*format.size()`.
 #[derive(Debug, Copy, Clone)]
 pub struct Image<T> {
-    /// Pixel data of the image (typically `&[u8]` or `&mut [u8]`).
+    /// Pixel data of the image (typically `&[u8]`, `&mut [u8]` or `Vec<u8>`).
     pub pixels: T,
     /// Width of the image in pixels (number of columns).
     pub width: usize,
     /// Pitch (stride) defines the size of one image row in bytes. Overlapping rows are not
-    /// supported, so we require that `pitch >= width * format.size()`.
+    /// supported, we require that `pitch >= width * format.size()`.
     pub pitch: usize,
     /// Height of the image in pixels (number of rows).
     pub height: usize,

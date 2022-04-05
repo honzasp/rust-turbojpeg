@@ -1,6 +1,6 @@
 use std::convert::TryInto as _;
 use crate::{Image, raw};
-use crate::common::{Subsamp, Colorspace, Result, Error, get_error};
+use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error, get_error};
 
 /// Decompresses JPEG data into raw pixels.
 #[derive(Debug)]
@@ -14,7 +14,7 @@ unsafe impl Send for Decompressor {}
 /// JPEG header that describes the compressed image.
 ///
 /// The header can be obtained without decompressing the image by calling
-/// [`Decompressor::read_header`].
+/// [`Decompressor::read_header()`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DecompressHeader {
     /// Width of the image in pixels (number of columns).
@@ -68,16 +68,16 @@ impl Decompressor {
         }
     }
 
-    /// Decompress a JPEG image in `jpeg_data` into `image`.
+    /// Decompress a JPEG image in `jpeg_data` into `output`.
     ///
-    /// The decompressed image is stored in the pixel data of the given `image`, which must be
-    /// fully initialized by the caller. Use [`read_header`](Decompressor::read_header) to
+    /// The decompressed image is stored in the pixel data of the given `output` image, which must
+    /// be fully initialized by the caller. Use [`read_header()`](Decompressor::read_header) to
     /// determine the image size before calling this method.
     #[doc(alias = "tjDecompress2")]
-    pub fn decompress_to_slice(&mut self, jpeg_data: &[u8], image: Image<&mut [u8]>) -> Result<()> {
-        image.assert_valid(image.pixels.len());
+    pub fn decompress(&mut self, jpeg_data: &[u8], output: Image<&mut [u8]>) -> Result<()> {
+        output.assert_valid(output.pixels.len());
 
-        let Image { pixels, width, pitch, height, format } = image;
+        let Image { pixels, width, pitch, height, format } = output;
         let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
         let pitch = pitch.try_into().map_err(|_| Error::IntegerOverflow("pitch"))?;
         let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
@@ -99,4 +99,25 @@ impl Decompressor {
             Err(unsafe { get_error(self.handle) })
         }
     }
+}
+
+/// Decompress a JPEG image.
+///
+/// Returns a newly allocated image with the given pixel `format`. If you have specific
+/// requirements regarding memory layout or allocations, please see [`Decompressor`].
+pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>>> {
+    let mut decompressor = Decompressor::new()?;
+    let header = decompressor.read_header(jpeg_data)?;
+
+    let pitch = header.width * format.size();
+    let mut image = Image {
+        pixels: vec![0; header.height * pitch],
+        width: header.width,
+        pitch,
+        height: header.height,
+        format,
+    };
+    decompressor.decompress(jpeg_data, image.as_deref_mut())?;
+
+    Ok(image)
 }

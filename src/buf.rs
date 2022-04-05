@@ -5,7 +5,9 @@ use std::ops::{Deref, DerefMut};
 
 /// Owned buffer with JPEG data.
 ///
-/// This represents a memory slice which is owned by TurboJPEG and can be automatically resized.
+/// This represents a memory slice which is owned by TurboJPEG and can be automatically resized
+/// when used as an output buffer. You can get a `&[u8]` or `&mut [u8]` from this type, or you can
+/// convert it into `OutputBuf`.
 #[derive(Debug)]
 pub struct OwnedBuf {
     ptr: *mut u8,
@@ -62,15 +64,15 @@ impl Drop for OwnedBuf {
 
 
 
-/// Output buffer for JPEG data.
+/// Output buffer for JPEG data (borrowed or owned).
 ///
 /// When compressing or transforming images, we need a memory buffer to store the compressed JPEG
 /// data. This buffer comes in two variants, which are similar to `Cow::Borrowed` and `Cow::Owned`
 /// from the standard library:
 ///
 /// - Borrowed buffer wraps a `&mut [u8]`, preallocated slice of fixed size provided by you. When
-/// using a borrowed buffer, TurboJPEG cannot resize the buffer, so the operation will fail with an
-/// error if the output does not fit into the buffer.
+/// using a borrowed buffer, TurboJPEG cannot resize the buffer, so the operation will fail if the
+/// output does not fit into the buffer.
 ///
 /// - Owned buffer wraps an [`OwnedBuf`], memory buffer owned by TurboJPEG. This buffer can be
 /// automatically resized to contain the compressed data, so you don't have to worry about its size.

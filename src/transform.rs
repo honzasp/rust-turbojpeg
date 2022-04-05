@@ -4,14 +4,20 @@ use crate::buf::{OwnedBuf, OutputBuf};
 use crate::common::{Error, Result, get_error};
 
 /// Transforms JPEG images without recompression.
+///
+/// TurboJPEG applies the transformation on the DCT coefficients, without performing complete
+/// decompression. This is faster and also means that the transforms are lossless.
 #[derive(Debug)]
 #[doc(alias = "tjhandle")]
 pub struct Transformer {
     handle: raw::tjhandle,
 }
 
-/// Lossless transform of JPEG image.
-#[derive(Debug, Default)]
+/// Lossless transform of a JPEG image.
+///
+/// When constructing an instance, you may start from the default transform
+/// ([`Transform::default()`](Self::default)) and modify only the fields that you need.
+#[derive(Debug, Default, Clone)]
 #[doc(alias = "tjtransform")]
 pub struct Transform {
     /// Transform operation that is applied.
@@ -24,15 +30,15 @@ pub struct Transform {
     /// Return an error if the transform is not perfect.
     ///
     /// Lossless transforms operate on MCU blocks, whose size depends on the level of chrominance
-    /// subsampling used (see [`Subsamp::mcu_width`] and [`Subsamp::mcu_height`].) If the image
-    /// width or height is not evenly divisible by the MCU block size, then there will be partial
-    /// MCU blocks on the right and bottom edges. It is not possible to move these partial MCU
-    /// blocks to the top or left of the image, so any transform that would require that is
-    /// "imperfect." If this option is not specified, then any partial MCU blocks that cannot be
-    /// transformed will be left in place, which will create odd-looking strips on the right or
-    /// bottom edge of the image.
+    /// subsampling used (see [`Subsamp::mcu_width()`][crate::Subsamp::mcu_width] and
+    /// [`Subsamp::mcu_height()`][crate::Subsamp::mcu_height]). If the image width or height is not
+    /// evenly divisible by the MCU block size, then there will be partial MCU blocks on the right
+    /// and bottom edges. It is not possible to move these partial MCU blocks to the top or left of
+    /// the image, so any transform that would require that is "imperfect".
     ///
-    /// See also [`trim`].
+    /// If this option is not specified and [`trim`][Self::trim] is not enabled, then any partial
+    /// MCU blocks that cannot be transformed will be left in place, which will create odd-looking
+    /// strips on the right or bottom edge of the image.
     #[doc(alias = "TJXOPT_PERFECT")]
     pub perfect: bool,
 
@@ -122,21 +128,21 @@ impl Default for TransformOp {
     }
 }
 
-/// Transform Cropping region.
+/// Transform cropping region.
 ///
-/// The [`x`] and [`y`] position of the region must be aligned on MCU boundaries. The size of the
-/// MCU depends on the chrominance subsampling option, which can be obtained using
-/// [`Decompressor::read_header`].
+/// The [`x`][Self::x] and [`y`][Self::y] position of the region must be aligned on MCU boundaries.
+/// The size of the MCU depends on the chrominance subsampling option, which can be obtained using
+/// [`Decompressor::read_header()`][crate::Decompressor::read_header].
 ///
 /// The default instance performs no cropping.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[doc(alias = "tjregion")]
 pub struct TransformCrop {
     /// Left boundary of the region. This must be divisible by the MCU width (see
-    /// [`Subsamp::mcu_width`]).
+    /// [`Subsamp::mcu_width()`][crate::Subsamp::mcu_width]).
     pub x: usize,
     /// Upper boundary of the region. This must be divisible by the MCU height (see
-    /// [`Subsamp::mcu_height`]).
+    /// [`Subsamp::mcu_height()`][crate::Subsamp::mcu_height]).
     pub y: usize,
     /// Width of the region. If None is given, the region ends at the right boundary of the image.
     pub width: Option<usize>,
@@ -161,11 +167,8 @@ impl Transformer {
 
     /// Apply a transformation to the compressed JPEG.
     ///
-    /// TurboJPEG applies the transformation on the DCT coefficients, without performing complete
-    /// decompression. This is faster and also means that the transforms are lossless.
-    ///
     /// This is the main transformation method, which gives you full control of the output buffer. If
-    /// you don't need this level of control, you can use [`transform_to_vec`].
+    /// you don't need this level of control, you can use one of the convenience wrappers below.
     #[doc(alias = "tjTransform")]
     pub fn transform(
         &mut self,
@@ -239,7 +242,8 @@ impl Transformer {
     /// Transform the `image` into a new `Vec<u8>`.
     ///
     /// This method copies the transformed data into a new `Vec`. If you would like to avoid the
-    /// extra allocation and copying, consider using [`transform_to_owned`] instead.
+    /// extra allocation and copying, consider using
+    /// [`transform_to_owned()`][Self::transform_to_owned] instead.
     pub fn transform_to_vec(&mut self, transform: &Transform, jpeg_data: &[u8]) -> Result<Vec<u8>> {
         let mut buf = OutputBuf::new_owned();
         self.transform(transform, jpeg_data, &mut buf)?;
@@ -251,11 +255,11 @@ impl Transformer {
     /// Returns the size of the transformed JPEG data. If the transformed image does not fit into
     /// `dest`, this method returns an error.
     ///
-    /// You can use [`compressed_buf_len`] to determine buffer size that should be enough for the
-    /// image, but there are some rare cases (such as transforming images with a large amount of
-    /// embedded EXIF or ICC profile data) in which the output image will be larger than the
-    /// size returned by [`compressed_buf_len`].
-    pub fn compress_to_slice(
+    /// You can use [`compressed_buf_len()`][crate::compressed_buf_len] to determine buffer size that
+    /// should be enough for the image, but there are some rare cases (such as transforming images
+    /// with a large amount of embedded EXIF or ICC profile data) in which the output image will be
+    /// larger than the size returned by [`compressed_buf_len()`][crate::compressed_buf_len].
+    pub fn transform_to_slice(
         &mut self,
         transform: &Transform,
         jpeg_data: &[u8],
@@ -272,4 +276,13 @@ impl Drop for Transformer {
     fn drop(&mut self) {
         unsafe { raw::tjDestroy(self.handle); }
     }
+}
+
+/// Losslessly transform a JPEG image without recompression.
+///
+/// Returns the transformed JPEG data in a buffer owned by TurboJPEG. If this does not fit your
+/// needs, please see [`Transformer`].
+pub fn transform(transform: &Transform, jpeg_data: &[u8]) -> Result<OwnedBuf> {
+    let mut transformer = Transformer::new()?;
+    transformer.transform_to_owned(transform, jpeg_data)
 }

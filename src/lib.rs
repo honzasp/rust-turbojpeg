@@ -8,7 +8,8 @@
 //! 
 //! To easily encode and decode images from the [`image`][image-rs] crate, please enable the
 //! optional dependency `"image"` of this crate in your `Cargo.toml`. Then you can use the
-//! functions [`decompress_image()`] and [`compress_image()`]:
+//! functions [`decompress_image()`][crate::decompress_image] and
+//! [`compress_image()`][crate::compress_image]:
 //! 
 //! ```rust
 //! // create an `image::RgbImage`

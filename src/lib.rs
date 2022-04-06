@@ -1,35 +1,30 @@
-//! Rust bindings for TurboJPEG, which provides simple and fast compression/decompression of JPEG
-//! images.
+//! Rust bindings for TurboJPEG, which provides simple and fast operations for JPEG images:
 //!
-//! # Easy usage with image-rs
+//! - Compression (encoding)
+//! - Decompression (decoding)
+//! - Lossless transformations
+//!
+//! # Integration with image-rs
 //! 
-//! To easily encode and decode images from the [`image`][image-rs] crate, please
-//! enable the optional dependency by adding this to the `[dependencies]` section of
-//! your `Cargo.toml`:
-//! 
-//! ```toml
-//! turbojpeg = {version = "^0.2", features = ["image"]}
-//! ```
-//! 
-//! Then you can use the functions [`decompress_image()`] and
-//! [`compress_image()`] to easily decode and encode JPEG:
+//! To easily encode and decode images from the [`image`][image-rs] crate, please enable the
+//! optional dependency `"image"` of this crate in your `Cargo.toml`. Then you can use the
+//! functions [`decompress_image()`] and [`compress_image()`]:
 //! 
 //! ```rust
 //! // create an `image::RgbImage`
 //! let image: image::RgbImage = ...;
 //! // compress `image` into JPEG with quality 95 and no chrominance subsampling
 //! let jpeg_data = turbojpeg::compress_image(&image, 95, turbojpeg::Subsamp::None)?;
-//! 
 //! // decompress `jpeg_data` into an `image::RgbImage`
 //! let image: image::RgbImage = turbojpeg::decompress_image(&jpeg_data);
 //! ```
 //! 
-//! This crate supports these image types:
+//! This crate supports these specializations of [`image::ImageBuffer`][::image::ImageBuffer]:
 //! 
-//! - [`RgbImage`][::image::RgbImage]
-//! - [`RgbaImage`][::image::RgbaImage] (JPEG does not support alpha channel, so alpha is ignored
-//!   when encoding and set to 255 when decoding)
-//! - [`GrayImage`][::image::GrayImage]
+//! - [`image::RgbImage`][::image::RgbImage]
+//! - [`image::RgbaImage`][::image::RgbaImage] (JPEG does not support alpha channel, so alpha is
+//!   ignored when encoding and set to 255 when decoding)
+//! - [`image::GrayImage`][::image::GrayImage]
 //! 
 //! [image-rs]: https://docs.rs/image/*/image/index.html
 //!
@@ -43,6 +38,13 @@
 //! argument for compression, `Image<&out [u8]>` as output argument for decompression, and you may
 //! also find `Image<Vec<u8>>` useful as an owned container of image data in you application.
 //!
+//! # Operations
+//!
+//! - **Decompress** images from JPEG using [`decompress()`] or [`Decompressor`].
+//! - **Compress** images into JPEG using [`compress()`] or [`Compressor`].
+//! - **Transform** images without recompression using [`transform()`] or [`Transformer`]. The
+//! transformations are described in the [`Transform`] struct.
+//! 
 //! # The [`OutputBuf`] and [`OwnedBuf`] types
 //!
 //! During decompression, we need to write the produced JPEG data into some memory buffer. You have
@@ -50,9 +52,9 @@
 //!
 //! - Write the data into a mutable slice (`&mut [u8]`) that you already allocated and initialized.
 //! This has the disadvantage that you must allocate all memory up front, so you need to make the
-//! buffer very large to ensure that it can hold the compressed image in the worst case, when the
-//! compression does not reduce the image size at all. You will also need to initialize the memory
-//! to comply with the Rust safety requirements.
+//! buffer very large to ensure that it can hold the compressed image even in the worst case, when
+//! the compression does not reduce the image size at all. You will also need to initialize the
+//! memory to comply with the Rust safety requirements.
 //!
 //! - Write the data into a memory buffer managed by TurboJPEG. This has the advantage that
 //! TurboJPEG can automatically resize the buffer, so we don't have to conservatively allocate and
@@ -61,7 +63,7 @@
 //!
 //! To handle both of these cases, this crate provides the [`OutputBuf`] type, which can hold
 //! either a `&mut [u8]` or an `OwnedBuf`.
-//! 
+//!
 //! # Features
 //!
 //! - `image`: enables the optional dependency on the [`image`][image-rs] crate.

@@ -1,9 +1,10 @@
 use crate::Image;
+use crate::buf::OwnedBuf;
 use crate::compress::Compressor;
 use crate::common::{PixelFormat, Result, Subsamp};
 use crate::decompress::Decompressor;
 
-/// Decompresses image from JPEG into an [`ImageBuffer`][image::ImageBuffer].
+/// Decompresses image from JPEG into an [`image::ImageBuffer`].
 pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec<u8>>>
     where P: JpegPixel + 'static
 {
@@ -29,7 +30,7 @@ pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec
     Ok(image_buf)
 }
 
-/// Compresses an [`ImageBuffer`][image::ImageBuffer] into JPEG.
+/// Compresses an [`image::ImageBuffer`] into JPEG.
 ///
 /// `quality` controls the tradeoff between image quality and size of the compressed image. It
 /// ranges from 1 (worst quality, smallest size) to 100 (best quality, largest size).
@@ -41,7 +42,7 @@ pub fn compress_image<P>(
     image_buf: &image::ImageBuffer<P, Vec<u8>>,
     quality: i32,
     subsamp: Subsamp,
-) -> Result<Vec<u8>> 
+) -> Result<OwnedBuf>
     where P: JpegPixel + 'static
 {
     let (width, height) = image_buf.dimensions();
@@ -57,10 +58,10 @@ pub fn compress_image<P>(
     let mut compressor = Compressor::new()?;
     compressor.set_quality(quality);
     compressor.set_subsamp(subsamp);
-    compressor.compress_to_vec(image)
+    compressor.compress_to_owned(image)
 }
 
-/// Trait implemented for [`Pixel`s][image::Pixel] that correspond to a [`PixelFormat`] supported
+/// Trait implemented for [`image::Pixel`s][image::Pixel] that correspond to a [`PixelFormat`] supported
 /// by TurboJPEG.
 pub trait JpegPixel: image::Pixel<Subpixel = u8> {
     /// The TurboJPEG pixel format that corresponds to this pixel type.

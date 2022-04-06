@@ -7,9 +7,6 @@ operations for JPEG images:
 - Decompression (decoding)
 - Lossless transformations
 
-TurboJPEG is a high-level API provided by the [libjpeg-turbo] library as an
-alternative to the backward-compatible [libjpeg] API.
-
 [libjpeg-turbo]: https://libjpeg-turbo.org/
 
 ## Usage with `image-rs`
@@ -17,7 +14,7 @@ alternative to the backward-compatible [libjpeg] API.
 To quickly encode and decode images from the [`image`][image-rs] crate, add this
 to the `[dependencies]` section in your `Cargo.toml`:
 
-    turbojpeg = {version = "0.3", features = ["image"]}
+    turbojpeg = {version = "0.4", features = ["image"]}
 
 and then use the functions [`turbojpeg::decompress_image`][decompress] and
 [`turbojpeg::compress_image`][compress].
@@ -62,10 +59,10 @@ system, please open an issue or a pull request.
 All contributions are welcome! Please contact me (@honzasp) or open a pull
 request. This crate is rather minimal, the main areas of improvement are:
 
-- Extending the safe Rust API provided by `turbojpeg` crate.
 - Improving the build process of `turbojpeg-sys` crate, so that it works
     seamlessly on a wide range of systems.
 - Testing.
+- Extending the safe Rust API provided by `turbojpeg` crate.
 
 ## License
 

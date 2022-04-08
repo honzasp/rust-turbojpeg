@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 ///
 /// This represents a memory slice which is owned by TurboJPEG and can be automatically resized
 /// when used as an output buffer. You can get a `&[u8]` or `&mut [u8]` from this type, or you can
-/// convert it into `OutputBuf`.
+/// convert it into [`OutputBuf`] using `.into()`.
 #[derive(Debug)]
 pub struct OwnedBuf {
     ptr: *mut u8,

@@ -1,8 +1,10 @@
 //! Rust bindings for TurboJPEG, which provides simple and fast operations for JPEG images:
 //!
-//! - Compression (encoding)
-//! - Decompression (decoding)
-//! - Lossless transformations
+//! - [Compression][compress()]: encode images into JPEG.
+//! - [Decompression][decompress()]: decode JPEGs into pixels.
+//! - [Lossless transformations][transform()]: apply basic geometric transformations (rotate, mirror,
+//! ...) without going through decompression and compression, so that the image does not lose
+//! quality.
 //!
 //! # Integration with image-rs
 //! 
@@ -11,13 +13,17 @@
 //! functions [`decompress_image()`][crate::decompress_image] and
 //! [`compress_image()`][crate::compress_image]:
 //! 
-//! ```rust
-//! // create an `image::RgbImage`
-//! let image: image::RgbImage = ...;
-//! // compress `image` into JPEG with quality 95 and no chrominance subsampling
-//! let jpeg_data = turbojpeg::compress_image(&image, 95, turbojpeg::Subsamp::None)?;
+//! ```
+//! // read JPEG data from file
+//! let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+//!
 //! // decompress `jpeg_data` into an `image::RgbImage`
-//! let image: image::RgbImage = turbojpeg::decompress_image(&jpeg_data);
+//! let image: image::RgbImage = turbojpeg::decompress_image(&jpeg_data)?;
+//!
+//! // compress `image` into JPEG with quality 95 and 2x2 chrominance subsampling
+//! let jpeg_data = turbojpeg::compress_image(&image, 95, turbojpeg::Subsamp::Sub2x2)?;
+//!
+//! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //! 
 //! This crate supports these specializations of [`image::ImageBuffer`][::image::ImageBuffer]:

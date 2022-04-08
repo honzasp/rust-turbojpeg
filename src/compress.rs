@@ -55,6 +55,43 @@ impl Compressor {
     ///
     /// This is the main compression method, which gives you full control of the output buffer. If
     /// you don't need this level of control, you can use one of the convenience wrappers below.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // create an image (a grayscale checkerboard)
+    /// let mut pixels = vec![0; 100 * 100];
+    /// for y in 0..100 {
+    ///     for x in 0..100 {
+    ///         pixels[100*y + x] = if (x / 10 + y / 10) % 2 == 0 { 64 } else { 192 };
+    ///     }
+    /// }
+    ///
+    /// let image = turbojpeg::Image {
+    ///     pixels,
+    ///     width: 100,
+    ///     pitch: 100,
+    ///     height: 100,
+    ///     format: turbojpeg::PixelFormat::GRAY,
+    /// };
+    ///
+    /// // initialize the compressor
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    /// compressor.set_quality(70);
+    /// compressor.set_subsamp(turbojpeg::Subsamp::Gray);
+    ///
+    /// // initialize the output buffer
+    /// let mut output_buf = turbojpeg::OutputBuf::new_owned();
+    ///
+    /// // compress the image into JPEG
+    /// // (we use as_deref() to convert from &Image<Vec<u8>> to Image<&[u8]>)
+    /// compressor.compress(image.as_deref(), &mut output_buf)?;
+    ///
+    /// // write the JPEG to disk
+    /// std::fs::write(std::env::temp_dir().join("checkerboard.jpg"), &output_buf)?;
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     #[doc(alias = "tjCompress2")]
     #[doc(alias = "tjCompress")]
     pub fn compress(&mut self, image: Image<&[u8]>, output: &mut OutputBuf) -> Result<()> {
@@ -140,6 +177,35 @@ impl Drop for Compressor {
 /// 
 /// Uses the given quality and chrominance subsampling option and returns the JPEG data in a buffer
 /// owned by TurboJPEG. If this function does not fit your needs, please see [`Compressor`].
+///
+/// # Example
+///
+/// ```
+/// // create an image (a grayscale checkerboard)
+/// let mut pixels = vec![0; 100 * 100];
+/// for y in 0..100 {
+///     for x in 0..100 {
+///         pixels[100*y + x] = if (x / 10 + y / 10) % 2 == 0 { 64 } else { 192 };
+///     }
+/// }
+///
+/// let image = turbojpeg::Image {
+///     pixels,
+///     width: 100,
+///     pitch: 100,
+///     height: 100,
+///     format: turbojpeg::PixelFormat::GRAY,
+/// };
+///
+/// // compress the image into JPEG with quality 75 and in grayscale
+/// // (we use as_deref() to convert from &Image<Vec<u8>> to Image<&[u8]>)
+/// let jpeg_data = turbojpeg::compress(image.as_deref(), 75, turbojpeg::Subsamp::Gray)?;
+///
+/// // write the JPEG to disk
+/// std::fs::write(std::env::temp_dir().join("checkerboard.jpg"), &jpeg_data)?;
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn compress(image: Image<&[u8]>, quality: i32, subsamp: Subsamp) -> Result<OwnedBuf> {
     let mut compressor = Compressor::new()?;
     compressor.set_quality(quality);

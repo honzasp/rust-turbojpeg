@@ -16,7 +16,43 @@ pub struct Transformer {
 /// Lossless transform of a JPEG image.
 ///
 /// When constructing an instance, you may start from the default transform
-/// ([`Transform::default()`](Self::default)) and modify only the fields that you need.
+/// ([`Transform::default()`][Self::default]) and modify only the fields that you need.
+///
+/// # Examples
+///
+/// Rotate image clockwise by 90 degrees:
+///
+/// ```
+/// # use turbojpeg::{Transform, TransformOp};
+/// let transform = Transform { op: TransformOp::Rot90, .. Transform::default() };
+/// ```
+///
+/// Rotate image counterclockwise by 90 degrees and fail if the transform is not
+/// [perfect][Self::perfect]:
+///
+/// ```
+/// # use turbojpeg::{Transform, TransformOp};
+/// let transform = Transform { op: TransformOp::Rot270, perfect: true, .. Transform::default() };
+/// ```
+///
+/// Flip image vertically and [trim][Self::trim] the image on the right edge if the transform is
+/// imperfect:
+///
+/// ```
+/// # use turbojpeg::{Transform, TransformOp};
+/// let transform = Transform { op: TransformOp::Vflip, trim: true, .. Transform::default() };
+/// ```
+///
+/// Crop image to size (200, 100) starting at pixel (16, 32), without applying any transform:
+///
+/// ```
+/// # use turbojpeg::{Transform, TransformOp, TransformCrop};
+/// let transform = Transform {
+///     op: TransformOp::None,
+///     crop: Some(TransformCrop { x: 16, y: 32, width: Some(200), height: Some(100) }),
+///     .. Transform::default()
+/// };
+/// ```
 #[derive(Debug, Default, Clone)]
 #[doc(alias = "tjtransform")]
 pub struct Transform {
@@ -169,6 +205,34 @@ impl Transformer {
     ///
     /// This is the main transformation method, which gives you full control of the output buffer. If
     /// you don't need this level of control, you can use one of the convenience wrappers below.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // read JPEG data from file
+    /// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+    ///
+    /// // initialize the transformer
+    /// let mut transformer = turbojpeg::Transformer::new()?;
+    ///
+    /// // define the transformation: flip vertically, trim partial MCU blocks on the bottom edge 
+    /// let transform = turbojpeg::Transform {
+    ///     op: turbojpeg::TransformOp::Vflip,
+    ///     trim: true,
+    ///     .. turbojpeg::Transform::default()
+    /// };
+    ///
+    /// // initialize the output buffer
+    /// let mut flipped_data = turbojpeg::OutputBuf::new_owned();
+    ///
+    /// // apply the transformation
+    /// transformer.transform(&transform, &jpeg_data, &mut flipped_data)?;
+    ///
+    /// // write the flipped JPEG back to disk
+    /// std::fs::write(std::env::temp_dir().join("flipped_parrots.jpg"), &flipped_data)?;
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     #[doc(alias = "tjTransform")]
     pub fn transform(
         &mut self,
@@ -280,8 +344,32 @@ impl Drop for Transformer {
 
 /// Losslessly transform a JPEG image without recompression.
 ///
+/// TurboJPEG applies the transformation on the DCT coefficients, without performing complete
+/// decompression. This is faster and also means that the transforms are lossless.
+///
 /// Returns the transformed JPEG data in a buffer owned by TurboJPEG. If this does not fit your
 /// needs, please see [`Transformer`].
+///
+/// # Example
+///
+/// ```
+/// // read JPEG data from file
+/// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+///
+/// // define the transformation: rotate 90 degrees clockwise
+/// let transform = turbojpeg::Transform {
+///     op: turbojpeg::TransformOp::Rot90,
+///     .. turbojpeg::Transform::default()
+/// };
+///
+/// // apply the transformation
+/// let rotated_data = turbojpeg::transform(&transform, &jpeg_data)?;
+///
+/// // write the rotated JPEG back to disk
+/// std::fs::write(std::env::temp_dir().join("rotated_parrots.jpg"), &rotated_data)?;
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn transform(transform: &Transform, jpeg_data: &[u8]) -> Result<OwnedBuf> {
     let mut transformer = Transformer::new()?;
     transformer.transform_to_owned(transform, jpeg_data)

@@ -5,6 +5,18 @@ use crate::common::{PixelFormat, Result, Subsamp};
 use crate::decompress::Decompressor;
 
 /// Decompresses image from JPEG into an [`image::ImageBuffer`].
+///
+/// # Example
+///
+/// ```
+/// // read JPEG data from file
+/// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+///
+/// // decompress `jpeg_data` into an `image::RgbImage`
+/// let image: image::RgbImage = turbojpeg::decompress_image(&jpeg_data)?;
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec<u8>>>
     where P: JpegPixel + 'static
 {
@@ -38,6 +50,22 @@ pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec
 /// `subsamp` sets the level of chrominance subsampling of the compressed JPEG image (please see
 /// the documentation of [`Subsamp`] for details). Use [`Subsamp::None`] for no subsampling
 /// (highest quality).
+///
+/// # Example
+///
+/// ```
+///
+/// // create an `image::RgbImage`
+/// let image = image::RgbImage::from_fn(256, 256, |x, y| image::Rgb([x as u8, y as u8, 128]));
+///
+/// // compress `image` into JPEG with quality 95 and 2x2 chrominance subsampling
+/// let jpeg_data = turbojpeg::compress_image(&image, 95, turbojpeg::Subsamp::Sub2x2)?;
+///
+/// // write the JPEG to disk
+/// std::fs::write(std::env::temp_dir().join("gradient.jpg"), &jpeg_data)?;
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn compress_image<P>(
     image_buf: &image::ImageBuffer<P, Vec<u8>>,
     quality: i32,

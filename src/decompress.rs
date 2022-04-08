@@ -42,6 +42,22 @@ impl Decompressor {
     }
 
     /// Read the JPEG header without decompressing the image.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // read JPEG data from file
+    /// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+    ///
+    /// // initialize a decompressor
+    /// let mut decompressor = turbojpeg::Decompressor::new()?;
+    ///
+    /// // read the JPEG header
+    /// let header = decompressor.read_header(&jpeg_data)?;
+    /// assert_eq!((header.width, header.height), (384, 256));
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn read_header(&mut self, jpeg_data: &[u8]) -> Result<DecompressHeader> {
         let jpeg_data_len = jpeg_data.len().try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
@@ -73,6 +89,35 @@ impl Decompressor {
     /// The decompressed image is stored in the pixel data of the given `output` image, which must
     /// be fully initialized by the caller. Use [`read_header()`](Decompressor::read_header) to
     /// determine the image size before calling this method.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // read JPEG data from file
+    /// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+    ///
+    /// // initialize a decompressor
+    /// let mut decompressor = turbojpeg::Decompressor::new()?;
+    ///
+    /// // read the JPEG header
+    /// let header = decompressor.read_header(&jpeg_data)?;
+    ///
+    /// // initialize the image (Image<Vec<u8>>)
+    /// let mut image = turbojpeg::Image {
+    ///     pixels: vec![0; 4 * header.width * header.height],
+    ///     width: header.width,
+    ///     pitch: 4 * header.width, // size of one image row in memory
+    ///     height: header.height,
+    ///     format: turbojpeg::PixelFormat::RGBA,
+    /// };
+    ///
+    /// // decompress the JPEG into the image
+    /// // (we use as_deref_mut() to convert from &mut Image<Vec<u8>> into Image<&mut [u8]>)
+    /// decompressor.decompress(&jpeg_data, image.as_deref_mut())?;
+    /// assert_eq!(&image.pixels[0..4], &[122, 118, 89, 255]);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     #[doc(alias = "tjDecompress2")]
     pub fn decompress(&mut self, jpeg_data: &[u8], output: Image<&mut [u8]>) -> Result<()> {
         output.assert_valid(output.pixels.len());
@@ -105,6 +150,21 @@ impl Decompressor {
 ///
 /// Returns a newly allocated image with the given pixel `format`. If you have specific
 /// requirements regarding memory layout or allocations, please see [`Decompressor`].
+///
+/// # Example
+///
+/// ```
+/// // read JPEG data from file
+/// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+///
+/// // decompress the JPEG into RGB image
+/// let image = turbojpeg::decompress(&jpeg_data, turbojpeg::PixelFormat::RGB)?;
+/// assert_eq!(image.format, turbojpeg::PixelFormat::RGB);
+/// assert_eq!((image.width, image.height), (384, 256));
+/// assert_eq!(image.pixels.len(), 384 * 256 * 3);
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>>> {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;

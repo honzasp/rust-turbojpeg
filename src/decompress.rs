@@ -14,7 +14,7 @@ unsafe impl Send for Decompressor {}
 /// JPEG header that describes the compressed image.
 ///
 /// The header can be obtained without decompressing the image by calling
-/// [`Decompressor::read_header()`].
+/// [`Decompressor::read_header()`] or [`read_header()`][crate::read_header].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DecompressHeader {
     /// Width of the image in pixels (number of columns).
@@ -180,4 +180,23 @@ pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>
     decompressor.decompress(jpeg_data, image.as_deref_mut())?;
 
     Ok(image)
+}
+
+/// Read the JPEG header without decompressing the image.
+///
+/// # Example
+///
+/// ```
+/// // read JPEG data from file
+/// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+///
+/// // read the JPEG header
+/// let header = turbojpeg::read_header(&jpeg_data)?;
+/// assert_eq!((header.width, header.height), (384, 256));
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn read_header(jpeg_data: &[u8]) -> Result<DecompressHeader> {
+    let mut decompressor = Decompressor::new()?;
+    decompressor.read_header(jpeg_data)
 }

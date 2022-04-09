@@ -51,6 +51,8 @@
 //! - **Compress** images into JPEG using [`compress()`] or [`Compressor`].
 //! - **Transform** images without recompression using [`transform()`] or [`Transformer`]. The
 //! transformations are described in the [`Transform`] struct.
+//! - **Read header** of JPEG image to get its size without decompression using
+//! [`Decompressor::read_header()`] or [`read_header()`].
 //! 
 //! # The [`OutputBuf`] and [`OwnedBuf`] types
 //!
@@ -92,7 +94,7 @@ mod transform;
 pub use self::buf::{OwnedBuf, OutputBuf};
 pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
 pub use self::compress::{Compressor, compress, compressed_buf_len};
-pub use self::decompress::{Decompressor, DecompressHeader, decompress};
+pub use self::decompress::{Decompressor, DecompressHeader, decompress, read_header};
 pub use self::image::Image;
 pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};
 

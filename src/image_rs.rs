@@ -17,6 +17,7 @@ use crate::decompress::Decompressor;
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec<u8>>>
     where P: JpegPixel + 'static
 {
@@ -66,6 +67,7 @@ pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub fn compress_image<P>(
     image_buf: &image::ImageBuffer<P, Vec<u8>>,
     quality: i32,
@@ -91,6 +93,7 @@ pub fn compress_image<P>(
 
 /// Trait implemented for [`image::Pixel`s][image::Pixel] that correspond to a [`PixelFormat`] supported
 /// by TurboJPEG.
+#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub trait JpegPixel: image::Pixel<Subpixel = u8> {
     /// The TurboJPEG pixel format that corresponds to this pixel type.
     const PIXEL_FORMAT: PixelFormat;

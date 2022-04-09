@@ -81,6 +81,7 @@
 //!
 //! [bindgen]: https://rust-lang.github.io/rust-bindgen/
 #![warn(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub extern crate turbojpeg_sys as raw;
 pub extern crate libc;
@@ -101,6 +102,5 @@ pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, tr
 #[cfg(feature = "image")]
 mod image_rs;
 #[cfg(feature = "image")]
-#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub use self::image_rs::{JpegPixel, compress_image, decompress_image};
 

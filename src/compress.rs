@@ -59,26 +59,13 @@ impl Compressor {
     /// # Example
     ///
     /// ```
-    /// // create an image (a grayscale checkerboard)
-    /// let mut pixels = vec![0; 100 * 100];
-    /// for y in 0..100 {
-    ///     for x in 0..100 {
-    ///         pixels[100*y + x] = if (x / 10 + y / 10) % 2 == 0 { 64 } else { 192 };
-    ///     }
-    /// }
-    ///
-    /// let image = turbojpeg::Image {
-    ///     pixels,
-    ///     width: 100,
-    ///     pitch: 100,
-    ///     height: 100,
-    ///     format: turbojpeg::PixelFormat::GRAY,
-    /// };
+    /// // create an image (a Mandelbrot set visualization)
+    /// let image = turbojpeg::Image::mandelbrot(500, 500, turbojpeg::PixelFormat::RGB);
     ///
     /// // initialize the compressor
     /// let mut compressor = turbojpeg::Compressor::new()?;
     /// compressor.set_quality(70);
-    /// compressor.set_subsamp(turbojpeg::Subsamp::Gray);
+    /// compressor.set_subsamp(turbojpeg::Subsamp::Sub2x2);
     ///
     /// // initialize the output buffer
     /// let mut output_buf = turbojpeg::OutputBuf::new_owned();
@@ -88,7 +75,7 @@ impl Compressor {
     /// compressor.compress(image.as_deref(), &mut output_buf)?;
     ///
     /// // write the JPEG to disk
-    /// std::fs::write(std::env::temp_dir().join("checkerboard.jpg"), &output_buf)?;
+    /// std::fs::write(std::env::temp_dir().join("mandelbrot.jpg"), &output_buf)?;
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
@@ -181,28 +168,15 @@ impl Drop for Compressor {
 /// # Example
 ///
 /// ```
-/// // create an image (a grayscale checkerboard)
-/// let mut pixels = vec![0; 100 * 100];
-/// for y in 0..100 {
-///     for x in 0..100 {
-///         pixels[100*y + x] = if (x / 10 + y / 10) % 2 == 0 { 64 } else { 192 };
-///     }
-/// }
-///
-/// let image = turbojpeg::Image {
-///     pixels,
-///     width: 100,
-///     pitch: 100,
-///     height: 100,
-///     format: turbojpeg::PixelFormat::GRAY,
-/// };
+/// // create an image (a Mandelbrot set visualization)
+/// let image = turbojpeg::Image::mandelbrot(500, 500, turbojpeg::PixelFormat::RGB);
 ///
 /// // compress the image into JPEG with quality 75 and in grayscale
 /// // (we use as_deref() to convert from &Image<Vec<u8>> to Image<&[u8]>)
-/// let jpeg_data = turbojpeg::compress(image.as_deref(), 75, turbojpeg::Subsamp::Gray)?;
+/// let jpeg_data = turbojpeg::compress(image.as_deref(), 75, turbojpeg::Subsamp::Sub2x2)?;
 ///
 /// // write the JPEG to disk
-/// std::fs::write(std::env::temp_dir().join("checkerboard.jpg"), &jpeg_data)?;
+/// std::fs::write(std::env::temp_dir().join("mandelbrot.jpg"), &jpeg_data)?;
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```

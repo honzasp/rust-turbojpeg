@@ -146,6 +146,12 @@ impl Decompressor {
     }
 }
 
+impl Drop for Decompressor {
+    fn drop(&mut self) {
+        unsafe { raw::tjDestroy(self.handle); }
+    }
+}
+
 /// Decompress a JPEG image.
 ///
 /// Returns a newly allocated image with the given pixel `format`. If you have specific

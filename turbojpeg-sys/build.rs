@@ -98,6 +98,9 @@ fn build_vendor() -> Result<Library> {
 
     let source_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?).join("libjpeg-turbo");
     let mut cmake = cmake::Config::new(source_path);
+    if cfg!(feature = "require-simd") {
+        cmake.configure_arg("-DREQUIRE_SIMD=ON");
+    }
     let dst_path = cmake.build();
 
     let lib_path = dst_path.join("lib");

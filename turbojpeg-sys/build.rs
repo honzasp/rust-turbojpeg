@@ -4,6 +4,7 @@ use std::{env, fs};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::process::Command;
 
 fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=build.rs");
@@ -93,6 +94,7 @@ fn find_explicit() -> Result<Library> {
 #[cfg(feature = "cmake")]
 fn build_vendor() -> Result<Library> {
     println!("Building turbojpeg from source");
+    check_nasm();
 
     let source_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?).join("libjpeg-turbo");
     let mut cmake = cmake::Config::new(source_path);
@@ -106,6 +108,13 @@ fn build_vendor() -> Result<Library> {
         include_paths: vec![include_path],
         defines: HashMap::new(),
     })
+}
+
+fn check_nasm() {
+    if !Command::new("nasm").arg("-v").status().map(|s| s.success()).unwrap_or(false) {
+        println!("cargo:warning=NASM does not seem to be installed, so turbojpeg will be compiled without \
+            SIMD extensions. Performance will suffer.");
+    }
 }
 
 #[cfg(not(feature = "cmake"))]

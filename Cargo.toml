@@ -1,7 +1,8 @@
 [package]
 name = "turbojpeg"
 version = "0.4.3"
-edition = "2018"
+edition = "2021"
+resolver = "2"
 
 authors = ["Jan Špaček <patek.mail@gmail.com>"]
 homepage = "https://github.com/honzasp/rust-turbojpeg"
@@ -21,7 +22,7 @@ doctest = true
 image = {version = ">=0.24", optional = true, default-features = false}
 libc = "^0.2"
 thiserror = "^1.0"
-turbojpeg-sys = {path = "turbojpeg-sys", version = "^0.1.0"}
+turbojpeg-sys = {version = "^0.1.0", default-features = false, path = "./turbojpeg-sys"}
 
 [dev-dependencies]
 anyhow = {version = "1.0"}
@@ -30,7 +31,9 @@ clap = "2.33"
 
 [features]
 bindgen = ["turbojpeg-sys/bindgen"]
+cmake = ["turbojpeg-sys/cmake"]
 pkg-config = ["turbojpeg-sys/pkg-config"]
+default = ["cmake", "pkg-config"]
 
 [[example]]
 name = "image"

@@ -1,14 +1,18 @@
 [package]
 name = "turbojpeg-sys"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
+resolver = "2"
+
 authors = ["Jan Špaček <patek.mail@gmail.com>"]
 homepage = "https://github.com/honzasp/rust-turbojpeg"
 repository = "https://github.com/honzasp/rust-turbojpeg/turbojpeg-sys"
 license = "Unlicense"
+
 keywords = ["jpeg", "image", "decoder", "encoder"]
 categories = ["compression", "external-ffi-bindings", "multimedia::images"]
 description = "Raw bindings for TurboJPEG"
+links = "turbojpeg"
 
 [dependencies]
 libc = "^0.2"
@@ -16,7 +20,8 @@ libc = "^0.2"
 [build-dependencies]
 anyhow = {version = "^1.0"}
 bindgen = {version = "^0.57", optional = true}
+cmake = {version = "^0.1", optional = true}
 pkg-config = {version = "^0.3", optional = true}
 
 [features]
-default = []
+default = ["cmake", "pkg-config"]

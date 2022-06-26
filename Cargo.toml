@@ -33,7 +33,8 @@ clap = "2.33"
 bindgen = ["turbojpeg-sys/bindgen"]
 cmake = ["turbojpeg-sys/cmake"]
 pkg-config = ["turbojpeg-sys/pkg-config"]
-default = ["cmake", "pkg-config"]
+require-simd = ["turbojpeg-sys/require-simd"]
+default = ["cmake", "pkg-config", "require-simd"]
 
 [[example]]
 name = "image"

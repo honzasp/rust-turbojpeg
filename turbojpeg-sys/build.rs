@@ -8,10 +8,37 @@ use std::process::Command;
 
 fn main() -> Result<()> {
     println!("cargo:rerun-if-changed=build.rs");
-    let library = build_or_find_library()?;
+    let link_kind = get_link_kind()?;
+    let library = build_or_find_library(link_kind)?;
     generate_or_copy_bindings(&library)?;
     Ok(())
 }
+
+#[derive(Debug)]
+enum LinkKind {
+    Static,
+    Dynamic,
+    Default,
+}
+
+fn get_link_kind() -> Result<LinkKind> {
+    let static_env = env_bool("TURBOJPEG_STATIC")?;
+    let dynamic_env = env_bool("TURBOJPEG_DYNAMIC")?.or(env_bool("TURBOJPEG_SHARED")?);
+
+    match (static_env, dynamic_env) {
+        (Some(true), Some(true)) =>
+            bail!("Both TURBOJPEG_STATIC and TURBOJPEG_DYNAMIC/TURBOJPEG_SHARED are set to 1"),
+        (Some(false), Some(false)) =>
+            bail!("Both TURBOJPEG_STATIC and TURBOJPEG_DYNAMIC/TURBOJPEG_SHARED are set to 0"),
+        (None, None) =>
+            Ok(LinkKind::Default),
+        (Some(true) | None, Some(false) | None) =>
+            Ok(LinkKind::Static),
+        (Some(false) | None, Some(true) | None) =>
+            Ok(LinkKind::Dynamic),
+    }
+}
+
 
 #[derive(Debug)]
 struct Library {
@@ -19,18 +46,18 @@ struct Library {
     defines: HashMap<String, Option<String>>,
 }
 
-fn build_or_find_library() -> Result<Library> {
+fn build_or_find_library(link_kind: LinkKind) -> Result<Library> {
     match env("TURBOJPEG_SOURCE") {
         Some(source) => {
             if source.eq_ignore_ascii_case("vendor") {
-                build_vendor()
+                build_vendor(link_kind)
             } else if source.eq_ignore_ascii_case("pkg-config") ||
                 source.eq_ignore_ascii_case("pkgconfig") ||
                 source.eq_ignore_ascii_case("pkgconf")
             {
-                find_pkg_config()
+                find_pkg_config(link_kind)
             } else if source.eq_ignore_ascii_case("explicit") {
-                find_explicit()
+                find_explicit(link_kind)
             } else {
                 bail!("Unknown value of TURBOJPEG_SOURCE, supported values are:\n\
                     - 'vendor' to build the library from source bundled with the turbojpeg-sys crate,\n\
@@ -40,22 +67,29 @@ fn build_or_find_library() -> Result<Library> {
         },
         None => {
             if cfg!(feature = "cmake") {
-                build_vendor()
+                build_vendor(link_kind)
             } else if cfg!(feature = "pkg-config") {
-                find_pkg_config()
+                find_pkg_config(link_kind)
             } else {
-                find_explicit()
+                find_explicit(link_kind)
             }
         },
     }
 }
 
 #[cfg(feature = "pkg-config")]
-fn find_pkg_config() -> Result<Library> {
+fn find_pkg_config(link_kind: LinkKind) -> Result<Library> {
     println!("Using pkg-config to find libturbojpeg");
-    let lib = pkg_config::Config::new()
-        .atleast_version("2.0")
-        .probe("libturbojpeg")
+
+    let mut cfg = pkg_config::Config::new();
+    cfg.atleast_version("2.0");
+    match link_kind {
+        LinkKind::Static => { cfg.statik(true); },
+        LinkKind::Dynamic => { cfg.statik(false); },
+        LinkKind::Default => {},
+    }
+
+    let lib = cfg.probe("libturbojpeg")
         .context("could not find turbojpeg using pkg-config")?;
 
     Ok(Library {
@@ -65,39 +99,45 @@ fn find_pkg_config() -> Result<Library> {
 }
 
 #[cfg(not(feature = "pkg-config"))]
-fn find_pkg_config() -> Result<Library> {
+fn find_pkg_config(_: LinkKind) -> Result<Library> {
     bail!("Trying to find turbojpeg using pkg-config, but the `pkg-config` feature is disabled. \
         You have two options:\n\
         - enable `pkg-config` feature of `turbojpeg-sys` crate\n\
         - use TURBOJPEG_SOURCE to select other source for the library")
 }
 
-fn find_explicit() -> Result<Library> {
+fn find_explicit(link_kind: LinkKind) -> Result<Library> {
     println!("Using TURBOJPEG_LIB_DIR and TURBOJPEG_INCLUDE_DIR to find turbojpeg");
 
     let lib_dir = env_path("TURBOJPEG_LIB_DIR")
         .or_else(|| env_path("TURBOJPEG_LIB_PATH"))
         .context("TURBOJPEG_SOURCE is set to 'explicit', but TURBOJPEG_LIB_DIR is not set")?;
     let include_dir = env_path("TURBOJPEG_INCLUDE_DIR")
-        .or_else(|| env_path("TURBOJPEG_INCLUDE_PATH"))
-        .context("TURBOJPEG_SOURCE is set to 'explicit', but TURBOJPEG_INCLUDE_DIR is not set")?;
+        .or_else(|| env_path("TURBOJPEG_INCLUDE_PATH"));
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
-    println!("cargo:rustc-link-lib=static=turbojpeg");
+    println!("cargo:rustc-link-lib={}=turbojpeg", match link_kind {
+        LinkKind::Static | LinkKind::Default => "static",
+        LinkKind::Dynamic => "dylib",
+    });
+
     Ok(Library {
-        include_paths: vec![include_dir],
+        include_paths: include_dir.into_iter().collect(),
         defines: HashMap::new(),
     })
 }
 
-
 #[cfg(feature = "cmake")]
-fn build_vendor() -> Result<Library> {
+fn build_vendor(link_kind: LinkKind) -> Result<Library> {
     println!("Building turbojpeg from source");
-    check_nasm();
+    if !cfg!(feature = "require-simd") {
+        check_nasm();
+    }
 
     let source_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?).join("libjpeg-turbo");
     let mut cmake = cmake::Config::new(source_path);
+    cmake.configure_arg(format!("-DENABLE_SHARED={}", matches!(link_kind, LinkKind::Dynamic) as u32));
+    cmake.configure_arg(format!("-DENABLE_STATIC={}", !matches!(link_kind, LinkKind::Dynamic) as u32));
     if cfg!(feature = "require-simd") {
         cmake.configure_arg("-DREQUIRE_SIMD=ON");
     }
@@ -106,7 +146,11 @@ fn build_vendor() -> Result<Library> {
     let lib_path = dst_path.join("lib");
     let include_path = dst_path.join("include");
     println!("cargo:rustc-link-search=native={}", lib_path.display());
-    println!("cargo:rustc-link-lib=static=turbojpeg");
+    println!("cargo:rustc-link-lib={}=turbojpeg", match link_kind {
+        LinkKind::Static | LinkKind::Default => "static",
+        LinkKind::Dynamic => "dylib",
+    });
+
     Ok(Library {
         include_paths: vec![include_path],
         defines: HashMap::new(),

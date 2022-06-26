@@ -1,4 +1,4 @@
-# rust-turbojpeg
+# turbojpeg
 
 Rust bindings for [TurboJPEG][libjpeg-turbo], which provides simple and fast
 operations for JPEG images:
@@ -30,29 +30,11 @@ documentation][docs].
 ## Requirements
 
 The low-level binding to `libturbojpeg` is provided by the crate
-`turbojpeg-sys`, which needs:
+`turbojpeg-sys`, which needs to link to the C library. Typically, you will need
+a C compiler and NASM to build the library from source, but see [its
+README][sys-readme] for details.
 
-- Rust binding code generated from C headers using [`bindgen`][bindgen].
-- Linker flags that `rustc` will use to link against `libturbojpeg`.
-
-By default, the `turbojpeg-sys` crate uses a pregenerated Rust binding code (so
-you don't need the C headers) and the default linker flags `-l turbojpeg`.
-However, this behavior can be altered in several ways:
-
-- Feature flag `pkg-config` uses the `pkg-config` tool to find the linker flags
-    and the include paths for C headers that are specific for your system.
-- Environment variable `TURBOJPEG_INCLUDE_PATH`, if specified, adds an extra
-    include path for C headers.
-- Feature flag `bindgen` uses the `bindgen` tool to generate Rust binding code
-    at build time, instead of using the pregenerated code. If no include paths
-    are specified (using `pkg-config` or `TURBOJPEG_INCLUDE_PATH`), we use
-    headers that are bundled with `turbojpeg-sys`.
-
-All this magic is implemented in the `build.rs` script in `turbojpeg-sys`. If
-you think that it could be improved, or if you encounter an error on your
-system, please open an issue or a pull request.
-
-[bindgen]: https://github.com/rust-lang/rust-bindgen
+[sys-readme]: https://github.com/honzasp/rust-turbojpeg/tree/master/turbojpeg-sys
 
 ## Contributing
 

@@ -41,4 +41,4 @@ pkg-config = {version = "^0.3", optional = true}
 
 [features]
 require-simd = []
-default = ["cmake", "pkg-config"]
+default = ["cmake", "pkg-config", "require-simd"]

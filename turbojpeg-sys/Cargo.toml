@@ -14,6 +14,22 @@ categories = ["compression", "external-ffi-bindings", "multimedia::images"]
 description = "Raw bindings for TurboJPEG"
 links = "turbojpeg"
 
+exclude = [
+    "libjpeg-turbo/.gitattributes",
+    "libjpeg-turbo/.github/",
+
+    "libjpeg-turbo/BUILDING.md",
+    "libjpeg-turbo/change.log",
+    "libjpeg-turbo/ChangeLog.md",
+    "libjpeg-turbo/coderules.txt",
+    "libjpeg-turbo/doc/",
+    "libjpeg-turbo/doxygen*",
+
+    "libjpeg-turbo/fuzz/",
+    "libjpeg-turbo/java/",
+    "libjpeg-turbo/testimages/",
+]
+
 [dependencies]
 libc = "^0.2"
 

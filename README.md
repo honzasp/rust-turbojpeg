@@ -14,7 +14,7 @@ operations for JPEG images:
 To quickly encode and decode images from the [`image`][image-rs] crate, add this
 to the `[dependencies]` section in your `Cargo.toml`:
 
-    turbojpeg = {version = "0.4", features = ["image"]}
+    turbojpeg = {version = "0.5", features = ["image"]}
 
 and then use the functions [`turbojpeg::decompress_image`][decompress] and
 [`turbojpeg::compress_image`][compress].

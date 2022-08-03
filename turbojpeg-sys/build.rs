@@ -138,6 +138,11 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
     let mut cmake = cmake::Config::new(source_path);
     cmake.configure_arg(format!("-DENABLE_SHARED={}", matches!(link_kind, LinkKind::Dynamic) as u32));
     cmake.configure_arg(format!("-DENABLE_STATIC={}", !matches!(link_kind, LinkKind::Dynamic) as u32));
+    // On some 64 bit targets, the default libdir would be set to lib64.
+    // Let's remain consistent across build targets and set the libdir ourselves,
+    // instead of trying to figure out where to find the libs based on the target
+    let libdir = "lib";
+    cmake.define("CMAKE_INSTALL_DEFAULT_LIBDIR", libdir);
     if cfg!(feature = "require-simd") {
         cmake.configure_arg("-DREQUIRE_SIMD=ON");
     }

@@ -14,6 +14,7 @@
 //! [`compress_image()`][crate::compress_image]:
 //! 
 //! ```
+//! # #[cfg(feature = "image")] {
 //! // read JPEG data from file
 //! let jpeg_data = std::fs::read("examples/parrots.jpg")?;
 //!
@@ -23,6 +24,7 @@
 //! // compress `image` into JPEG with quality 95 and 2x2 chrominance subsampling
 //! let jpeg_data = turbojpeg::compress_image(&image, 95, turbojpeg::Subsamp::Sub2x2)?;
 //!
+//! # }
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //! 

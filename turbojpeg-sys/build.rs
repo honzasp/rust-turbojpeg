@@ -170,7 +170,7 @@ fn check_nasm() {
 }
 
 #[cfg(not(feature = "cmake"))]
-fn build_vendor() -> Result<()> {
+fn build_vendor(_link_kind: LinkKind) -> Result<Library> {
     bail!("Trying to build turbojpeg from source, but the `cmake` feature is disabled.\
         You have two options:\n\
         - enable `cmake` feature of `turbojpeg-sys` crate\n\

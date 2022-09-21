@@ -155,9 +155,13 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
     let lib_path = dst_path.join("lib");
     let include_path = dst_path.join("include");
     println!("cargo:rustc-link-search=native={}", lib_path.display());
-    println!("cargo:rustc-link-lib={}=turbojpeg", match link_kind {
+    println!("cargo:rustc-link-lib={}=turbojpeg{}", match link_kind {
         LinkKind::Static | LinkKind::Default => "static",
         LinkKind::Dynamic => "dylib",
+    }, if env("CARGO_CFG_WINDOWS").is_some() && matches!(link_kind, LinkKind::Static | LinkKind::Default) {
+        "-static"
+    } else {
+        ""
     });
 
     Ok(Library {

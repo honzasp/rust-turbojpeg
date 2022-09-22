@@ -115,6 +115,11 @@ fn find_explicit(link_kind: LinkKind) -> Result<Library> {
     let include_dir = env_path("TURBOJPEG_INCLUDE_DIR")
         .or_else(|| env_path("TURBOJPEG_INCLUDE_PATH"));
 
+    let lib_dir = fs::canonicalize(lib_dir)
+        .context("Cannot canonicalize TURBOJPEG_LIB_DIR")?;
+    let include_dir = include_dir.map(fs::canonicalize).transpose()
+        .context("Cannot canonicalize TURBOJPEG_INCLUDE_DIR")?;
+
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib={}=turbojpeg", match link_kind {
         LinkKind::Static | LinkKind::Default => "static",
@@ -141,8 +146,7 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
     // On some 64 bit targets, the default libdir would be set to lib64.
     // Let's remain consistent across build targets and set the libdir ourselves,
     // instead of trying to figure out where to find the libs based on the target
-    let libdir = "lib";
-    cmake.define("CMAKE_INSTALL_DEFAULT_LIBDIR", libdir);
+    cmake.define("CMAKE_INSTALL_DEFAULT_LIBDIR", "lib");
     if cfg!(feature = "require-simd") {
         cmake.configure_arg("-DREQUIRE_SIMD=ON");
     }

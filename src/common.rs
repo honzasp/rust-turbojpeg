@@ -202,13 +202,27 @@ impl Subsamp {
     /// Get the width of the MCU block for this level of chrominance subsampling.
     #[doc(alias = "tjMCUWidth")]
     pub fn mcu_width(self) -> usize {
-        unsafe { raw::tjMCUWidth[self as usize] as usize }
+        self.mcu_size().0
     }
 
     /// Get the height of the MCU block for this level of chrominance subsampling.
     #[doc(alias = "tjMCUHeight")]
     pub fn mcu_height(self) -> usize {
-        unsafe { raw::tjMCUHeight[self as usize] as usize }
+        self.mcu_size().1
+    }
+
+    /// Get the size of the MCU block for this level of chrominance subsampling as (width, height).
+    #[doc(alias = "tjMCUWidth")]
+    #[doc(alias = "tjMCUHeight")]
+    pub fn mcu_size(self) -> (usize, usize) {
+        match self {
+            Subsamp::None => (8, 8),
+            Subsamp::Sub2x1 => (16, 8),
+            Subsamp::Sub2x2 => (16, 16),
+            Subsamp::Gray => (8, 8),
+            Subsamp::Sub1x2 => (8, 16),
+            Subsamp::Sub4x1 => (32, 8),
+        }
     }
 }
 

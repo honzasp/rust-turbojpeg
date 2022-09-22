@@ -785,7 +785,7 @@ dependencies = [
 
 [[package]]
 name = "turbojpeg"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -797,7 +797,7 @@ dependencies = [
 
 [[package]]
 name = "turbojpeg-sys"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "bindgen",

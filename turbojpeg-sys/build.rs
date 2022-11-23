@@ -150,6 +150,18 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
     if cfg!(feature = "require-simd") {
         cmake.configure_arg("-DREQUIRE_SIMD=ON");
     }
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    if target_os == "android" {
+        let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+        let android_abi = match target_arch.as_str() {
+            "arm" => "armeabi-v7a",
+            "aarch64" => "arm64-v8a",
+            "x86" => "x86",
+            "x86_64" => "x86_64",
+            _ => panic!("Unsupported Android arch: {target_arch}"),
+        };
+        cmake.configure_arg(format!("-DANDROID_ABI={android_abi}"));
+    }
     let dst_path = cmake.build();
 
     let lib_path = dst_path.join("lib");

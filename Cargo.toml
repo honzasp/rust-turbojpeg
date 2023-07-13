@@ -8,7 +8,7 @@ authors = ["Jan Špaček <patek.mail@gmail.com>"]
 homepage = "https://github.com/honzasp/rust-turbojpeg"
 repository = "https://github.com/honzasp/rust-turbojpeg"
 documentation = "https://docs.rs/turbojpeg"
-license = "Unlicense"
+license = "Unlicense OR MIT"
 readme = "README.md"
 
 keywords = ["jpeg", "image", "decoder", "encoder", "transform"]

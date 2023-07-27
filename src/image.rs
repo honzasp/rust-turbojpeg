@@ -1,5 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use crate::common::PixelFormat;
+use crate::{common::PixelFormat, Subsamp, yuv_pixels_len};
 
 /// An image with pixels of type `T`.
 ///
@@ -8,7 +8,7 @@ use crate::common::PixelFormat;
 /// - `Image<&[u8]>`: immutable reference to image data (input image for compression by
 /// [`Compressor`][crate::Compressor])
 /// - `Image<&mut [u8]>`: mutable reference to image data (output image for decompression by
-/// [`Decompressor`][crate::Compressor]).
+/// [`Decompressor`][crate::Decompressor]).
 /// - `Image<Vec<u8>>`: owned image data (you can convert it to a reference using
 /// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
 ///
@@ -167,3 +167,62 @@ impl Image<Vec<u8>> {
     }
 }
 
+/// A yuv image with pixels of type `T`.
+///
+/// Two variants of this type are commonly used:
+///
+/// - `YuvImage<&mut [u8]>`: mutable reference to yuv image data (output image for decompression by
+/// [`Decompressor`][crate::Decompressor]).
+/// - `YuvImage<Vec<u8>>`: owned yuv image data (you can convert it to a reference using
+/// [`.as_deref()`][YuvImage::as_deref] or [`.as_deref_mut()`][YuvImage::as_deref_mut]).
+pub struct YuvImage<T> {
+    /// Pixel data of the image (typically `&[u8]`, `&mut [u8]` or `Vec<u8>`).
+    pub pixels: T,
+    /// Width of the image in pixels (number of columns).
+    pub width: usize,
+    /// Align row alignment (in bytes) of the YUV image (must be a power of 2.) 
+    /// Setting this parameter to n will cause each row in each plane of the YUV 
+    /// image to be padded to the nearest multiple of n bytes (1 = unpadded.) 
+    /// To generate images suitable for X Video, align should be set to 4.
+    pub align: usize,
+    /// Height of the image in pixels (number of rows).
+    pub height: usize,
+    /// The level of chrominance subsampling used in the YUV image.
+    pub subsamp: Subsamp,
+}
+
+impl<T> YuvImage<T> {
+    /// Converts from `&YuvImage<T>` to `YuvImage<&T::Target>`.
+    ///
+    /// In particular, you can use this to get `YuvImage<&[u8]>` from `YuvImage<Vec<u8>>`.
+    pub fn as_deref(&self) -> YuvImage<&T::Target> where T: Deref {
+        YuvImage {
+            pixels: self.pixels.deref(),
+            width: self.width,
+            align: self.align,
+            height: self.height,
+            subsamp: self.subsamp,
+        }
+    }
+
+    /// Converts from `&mut YuvImage<T>` to `YuvImage<&mut T::Target>`.
+    ///
+    /// In particular, you can use this to get `YuvImage<&mut [u8]>` from `YuvImage<Vec<u8>>`.
+    pub fn as_deref_mut(&mut self) -> YuvImage<&mut T::Target> where T: DerefMut {
+        YuvImage {
+            pixels: self.pixels.deref_mut(),
+            width: self.width,
+            align: self.align,
+            height: self.height,
+            subsamp: self.subsamp,
+        }
+    }
+
+    pub(crate) fn assert_valid(&self, pixels_len: usize) {
+        let YuvImage { pixels: _, width, align, height, subsamp } = *self;
+        let min_yuv_pixels_len = yuv_pixels_len(width, align, height, subsamp).unwrap();
+        assert!(min_yuv_pixels_len <= pixels_len,
+            "pixels length {} is too small for width {}, height {}, align {} and subsamp {:?}",
+            pixels_len, width, height, align, subsamp);
+    }
+}

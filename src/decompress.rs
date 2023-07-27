@@ -1,6 +1,5 @@
 use std::convert::TryInto as _;
-use crate::{Image, raw};
-use crate::image::YUVImage;
+use crate::{Image, YUVImage, raw};
 use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error, get_error};
 
 /// Decompresses JPEG data into raw pixels.
@@ -269,7 +268,12 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YUVImage<Vec<u8>>> {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;
     let yuv_video_pad = 4;
-    let yuv_frame_size = match yuv_frame_size(header.width, yuv_video_pad, header.height, header.subsamp) {
+    let yuv_frame_size = match yuv_frame_size(
+        header.width,
+        yuv_video_pad,
+        header.height,
+        header.subsamp,
+    ) {
         Ok(size) => size,
         Err(e) => panic!("{}", e)
     };

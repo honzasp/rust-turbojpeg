@@ -8,7 +8,7 @@ use crate::common::PixelFormat;
 /// - `Image<&[u8]>`: immutable reference to image data (input image for compression by
 /// [`Compressor`][crate::Compressor])
 /// - `Image<&mut [u8]>`: mutable reference to image data (output image for decompression by
-/// [`Decompressor`][crate::Compressor]).
+/// [`Decompressor`][crate::Decompressor]).
 /// - `Image<Vec<u8>>`: owned image data (you can convert it to a reference using
 /// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
 ///
@@ -169,14 +169,12 @@ impl Image<Vec<u8>> {
 
 /// A yuv image with pixels of type `T`.
 ///
-/// Three variants of this type are commonly used:
+/// Two variants of this type are commonly used:
 ///
-/// - `YUVImage<&[u8]>`: immutable reference to yuv image data (input image for compression by
-/// [`Compressor`][crate::Compressor])
 /// - `YUVImage<&mut [u8]>`: mutable reference to yuv image data (output image for decompression by
-/// [`Decompressor`][crate::Compressor]).
+/// [`Decompressor`][crate::Decompressor]).
 /// - `YUVImage<Vec<u8>>`: owned yuv image data (you can convert it to a reference using
-/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
+/// [`.as_deref()`][YUVImage::as_deref] or [`.as_deref_mut()`][YUVImage::as_deref_mut]).
 pub struct YUVImage<T> {
     /// Pixel data of the image (typically `&[u8]`, `&mut [u8]` or `Vec<u8>`).
     pub pixels: T,

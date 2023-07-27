@@ -167,3 +167,51 @@ impl Image<Vec<u8>> {
     }
 }
 
+/// A yuv image with pixels of type `T`.
+///
+/// Three variants of this type are commonly used:
+///
+/// - `YUVImage<&[u8]>`: immutable reference to yuv image data (input image for compression by
+/// [`Compressor`][crate::Compressor])
+/// - `YUVImage<&mut [u8]>`: mutable reference to yuv image data (output image for decompression by
+/// [`Decompressor`][crate::Compressor]).
+/// - `YUVImage<Vec<u8>>`: owned yuv image data (you can convert it to a reference using
+/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
+pub struct YUVImage<T> {
+    /// Pixel data of the image (typically `&[u8]`, `&mut [u8]` or `Vec<u8>`).
+    pub pixels: T,
+    /// Width of the image in pixels (number of columns).
+    pub width: usize,
+    /// Pad the width of each line in each plane of the YUV image will be
+    /// padded to the nearest multiple of this number of bytes (must be a power of
+    /// 2.)  To generate images suitable for X Video, <tt>pad</tt> should be set to 4
+    pub pad: usize,
+    /// Height of the image in pixels (number of rows).
+    pub height: usize,
+}
+
+impl<T> YUVImage<T> {
+    /// Converts from `&YUVImage<T>` to `YUVImage<&T::Target>`.
+    ///
+    /// In particular, you can use this to get `YUVImage<&[u8]>` from `YUVImage<Vec<u8>>`.
+    pub fn as_deref(&self) -> YUVImage<&T::Target> where T: Deref {
+        YUVImage {
+            pixels: self.pixels.deref(),
+            width: self.width,
+            pad: self.pad,
+            height: self.height,
+        }
+    }
+
+    /// Converts from `&mut YUVImage<T>` to `YUVImage<&mut T::Target>`.
+    ///
+    /// In particular, you can use this to get `YUVImage<&mut [u8]>` from `YUVImage<Vec<u8>>`.
+    pub fn as_deref_mut(&mut self) -> YUVImage<&mut T::Target> where T: DerefMut {
+        YUVImage {
+            pixels: self.pixels.deref_mut(),
+            width: self.width,
+            pad: self.pad,
+            height: self.height,
+        }
+    }
+}

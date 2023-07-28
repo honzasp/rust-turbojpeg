@@ -186,6 +186,8 @@ pub struct YuvImage<T> {
     pub pad: usize,
     /// Height of the image in pixels (number of rows).
     pub height: usize,
+    /// The level of chrominance subsampling used in the YUV image.
+    pub subsamp: Subsamp,
 }
 
 impl<T> YuvImage<T> {
@@ -198,6 +200,7 @@ impl<T> YuvImage<T> {
             width: self.width,
             pad: self.pad,
             height: self.height,
+            subsamp: self.subsamp,
         }
     }
 
@@ -210,6 +213,15 @@ impl<T> YuvImage<T> {
             width: self.width,
             pad: self.pad,
             height: self.height,
+            subsamp: self.subsamp,
         }
+    }
+
+    pub(crate) fn assert_valid(&self, pixels_len: usize) {
+        let YuvImage { pixels: _, width, pad, height, subsamp } = *self;
+        let min_yuv_pixels_len = yuv_pixels_len(width, pad, height, subsamp).unwrap();
+        assert!(min_yuv_pixels_len <= pixels_len,
+            "pixels length {} is too small for width {}, height {}, pad {} and subsamp {:?}",
+            pixels_len, width, height, pad, subsamp);
     }
 }

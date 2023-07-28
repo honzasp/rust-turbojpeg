@@ -182,7 +182,9 @@ impl Decompressor {
     /// ```
     #[doc(alias = "tjDecompressToYUV2")]
     pub fn decompress_to_yuv(&mut self, jpeg_data: &[u8], output: YuvImage<&mut [u8]>) -> Result<()> {
-        let YuvImage { pixels, width, pad, height } = output;
+        output.assert_valid(output.pixels.len());
+    
+        let YuvImage { pixels, width, pad, height , subsamp: _ } = output;
         let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
         let pad = pad.try_into().map_err(|_| Error::IntegerOverflow("pad"))?;
         let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
@@ -280,6 +282,7 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
         width: header.width,
         pad: yuv_video_pad,
         height: header.height,
+        subsamp: header.subsamp,
     };
     decompressor.decompress_to_yuv(jpeg_data, yuv_image.as_deref_mut())?;
 

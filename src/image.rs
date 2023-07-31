@@ -1,5 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use crate::{common::PixelFormat, Subsamp, yuv_pixels_len};
+use crate::common::PixelFormat;
 
 /// An image with pixels of type `T`.
 ///
@@ -171,11 +171,11 @@ impl Image<Vec<u8>> {
 ///
 /// Two variants of this type are commonly used:
 ///
-/// - `YuvImage<&mut [u8]>`: mutable reference to yuv image data (output image for decompression by
+/// - `YUVImage<&mut [u8]>`: mutable reference to yuv image data (output image for decompression by
 /// [`Decompressor`][crate::Decompressor]).
-/// - `YuvImage<Vec<u8>>`: owned yuv image data (you can convert it to a reference using
-/// [`.as_deref()`][YuvImage::as_deref] or [`.as_deref_mut()`][YuvImage::as_deref_mut]).
-pub struct YuvImage<T> {
+/// - `YUVImage<Vec<u8>>`: owned yuv image data (you can convert it to a reference using
+/// [`.as_deref()`][YUVImage::as_deref] or [`.as_deref_mut()`][YUVImage::as_deref_mut]).
+pub struct YUVImage<T> {
     /// Pixel data of the image (typically `&[u8]`, `&mut [u8]` or `Vec<u8>`).
     pub pixels: T,
     /// Width of the image in pixels (number of columns).
@@ -188,12 +188,12 @@ pub struct YuvImage<T> {
     pub height: usize,
 }
 
-impl<T> YuvImage<T> {
-    /// Converts from `&YuvImage<T>` to `YuvImage<&T::Target>`.
+impl<T> YUVImage<T> {
+    /// Converts from `&YUVImage<T>` to `YUVImage<&T::Target>`.
     ///
-    /// In particular, you can use this to get `YuvImage<&[u8]>` from `YuvImage<Vec<u8>>`.
-    pub fn as_deref(&self) -> YuvImage<&T::Target> where T: Deref {
-        YuvImage {
+    /// In particular, you can use this to get `YUVImage<&[u8]>` from `YUVImage<Vec<u8>>`.
+    pub fn as_deref(&self) -> YUVImage<&T::Target> where T: Deref {
+        YUVImage {
             pixels: self.pixels.deref(),
             width: self.width,
             pad: self.pad,
@@ -201,11 +201,11 @@ impl<T> YuvImage<T> {
         }
     }
 
-    /// Converts from `&mut YuvImage<T>` to `YuvImage<&mut T::Target>`.
+    /// Converts from `&mut YUVImage<T>` to `YUVImage<&mut T::Target>`.
     ///
-    /// In particular, you can use this to get `YuvImage<&mut [u8]>` from `YuvImage<Vec<u8>>`.
-    pub fn as_deref_mut(&mut self) -> YuvImage<&mut T::Target> where T: DerefMut {
-        YuvImage {
+    /// In particular, you can use this to get `YUVImage<&mut [u8]>` from `YUVImage<Vec<u8>>`.
+    pub fn as_deref_mut(&mut self) -> YUVImage<&mut T::Target> where T: DerefMut {
+        YUVImage {
             pixels: self.pixels.deref_mut(),
             width: self.width,
             pad: self.pad,

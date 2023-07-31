@@ -1,5 +1,5 @@
 use std::convert::TryInto as _;
-use crate::{Image, YuvImage, raw};
+use crate::{Image, YUVImage, raw};
 use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error, get_error};
 
 /// Decompresses JPEG data into raw pixels.
@@ -163,26 +163,26 @@ impl Decompressor {
     /// // read the JPEG header
     /// let header = decompressor.read_header(&jpeg_data)?;
     /// // calculate yuv frame size
-    /// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, 4, header.height, header.subsamp);
+    /// let yuv_frame_size = turbojpeg::yuv_frame_size(header.width, 4, header.height, header.subsamp);
     ///
-    /// // initialize the image (YuvImage<Vec<u8>>)
-    /// let mut image = turbojpeg::YuvImage {
-    ///     pixels: vec![0; yuv_pixels_len.unwrap()],
+    /// // initialize the image (YUVImage<Vec<u8>>)
+    /// let mut image = turbojpeg::YUVImage {
+    ///     pixels: vec![0; yuv_frame_size.unwrap()],
     ///     width: header.width,
     ///     pad: 4, // for video
     ///     height: header.height,
     /// };
     ///
     /// // decompress the JPEG into the image
-    /// // (we use as_deref_mut() to convert from &mut YuvImage<Vec<u8>> into YuvImage<&mut [u8]>)
+    /// // (we use as_deref_mut() to convert from &mut YUVImage<Vec<u8>> into YUVImage<&mut [u8]>)
     /// decompressor.decompress_to_yuv(&jpeg_data, image.as_deref_mut())?;
     /// assert_eq!(&image.pixels[0..4], &[116, 117, 118, 119]);
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[doc(alias = "tjDecompressToYUV2")]
-    pub fn decompress_to_yuv(&mut self, jpeg_data: &[u8], output: YuvImage<&mut [u8]>) -> Result<()> {
-        let YuvImage { pixels, width, pad, height } = output;
+    pub fn decompress_to_yuv(&mut self, jpeg_data: &[u8], output: YUVImage<&mut [u8]>) -> Result<()> {
+        let YUVImage { pixels, width, pad, height } = output;
         let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
         let pad = pad.try_into().map_err(|_| Error::IntegerOverflow("pad"))?;
         let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
@@ -264,19 +264,22 @@ pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
+pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YUVImage<Vec<u8>>> {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;
     let yuv_video_pad = 4;
-    let yuv_pixels_len = yuv_pixels_len(
+    let yuv_frame_size = match yuv_frame_size(
         header.width,
         yuv_video_pad,
         header.height,
         header.subsamp,
-    )?;
+    ) {
+        Ok(size) => size,
+        Err(e) => panic!("{}", e)
+    };
 
-    let mut yuv_image = YuvImage {
-        pixels: vec![0; yuv_pixels_len],
+    let mut yuv_image = YUVImage {
+        pixels: vec![0; yuv_frame_size],
         width: header.width,
         pad: yuv_video_pad,
         height: header.height,
@@ -300,12 +303,12 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
 /// let header = turbojpeg::read_header(&jpeg_data)?;
 /// // get yuv frame size
 /// let yuv_video_pad = 4;
-/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, yuv_video_pad, header.height, header.subsamp);
-/// assert_eq!(yuv_pixels_len.unwrap(), 294912);
+/// let yuv_frame_size = turbojpeg::yuv_frame_size(header.width, yuv_video_pad, header.height, header.subsamp);
+/// assert_eq!(yuv_frame_size.unwrap(), 294912);
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn yuv_pixels_len(width: usize, pad: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
+pub fn yuv_frame_size(width: usize, pad: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
     let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
     let pad = pad.try_into().map_err(|_| Error::IntegerOverflow("pad"))?;
     let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;

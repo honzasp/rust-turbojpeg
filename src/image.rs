@@ -180,10 +180,11 @@ pub struct YuvImage<T> {
     pub pixels: T,
     /// Width of the image in pixels (number of columns).
     pub width: usize,
-    /// Pad the width of each line in each plane of the YUV image will be
-    /// padded to the nearest multiple of this number of bytes (must be a power of
-    /// 2.)  To generate images suitable for X Video, <tt>pad</tt> should be set to 4
-    pub pad: usize,
+    /// Align row alignment (in bytes) of the YUV image (must be a power of 2.) 
+    /// Setting this parameter to n will cause each row in each plane of the YUV 
+    /// image to be padded to the nearest multiple of n bytes (1 = unpadded.) 
+    /// To generate images suitable for X Video, align should be set to 4.
+    pub align: usize,
     /// Height of the image in pixels (number of rows).
     pub height: usize,
     /// The level of chrominance subsampling used in the YUV image.
@@ -198,7 +199,7 @@ impl<T> YuvImage<T> {
         YuvImage {
             pixels: self.pixels.deref(),
             width: self.width,
-            pad: self.pad,
+            align: self.align,
             height: self.height,
             subsamp: self.subsamp,
         }
@@ -211,17 +212,17 @@ impl<T> YuvImage<T> {
         YuvImage {
             pixels: self.pixels.deref_mut(),
             width: self.width,
-            pad: self.pad,
+            align: self.align,
             height: self.height,
             subsamp: self.subsamp,
         }
     }
 
     pub(crate) fn assert_valid(&self, pixels_len: usize) {
-        let YuvImage { pixels: _, width, pad, height, subsamp } = *self;
-        let min_yuv_pixels_len = yuv_pixels_len(width, pad, height, subsamp).unwrap();
+        let YuvImage { pixels: _, width, align, height, subsamp } = *self;
+        let min_yuv_pixels_len = yuv_pixels_len(width, align, height, subsamp).unwrap();
         assert!(min_yuv_pixels_len <= pixels_len,
-            "pixels length {} is too small for width {}, height {}, pad {} and subsamp {:?}",
-            pixels_len, width, height, pad, subsamp);
+            "pixels length {} is too small for width {}, height {}, align {} and subsamp {:?}",
+            pixels_len, width, height, align, subsamp);
     }
 }

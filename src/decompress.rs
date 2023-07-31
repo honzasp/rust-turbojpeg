@@ -162,14 +162,15 @@ impl Decompressor {
     ///
     /// // read the JPEG header
     /// let header = decompressor.read_header(&jpeg_data)?;
-    /// // calculate yuv frame size
-    /// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, 4, header.height, header.subsamp);
+    /// // calculate yuv pixels length
+    /// let yuv_video_align = 4;
+    /// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, yuv_video_align, header.height, header.subsamp);
     ///
     /// // initialize the image (YuvImage<Vec<u8>>)
     /// let mut image = turbojpeg::YuvImage {
     ///     pixels: vec![0; yuv_pixels_len.unwrap()],
     ///     width: header.width,
-    ///     pad: 4, // for video
+    ///     align: yuv_video_align, // for video
     ///     height: header.height,
     ///     subsamp: header.subsamp,
     /// };
@@ -185,9 +186,9 @@ impl Decompressor {
     pub fn decompress_to_yuv(&mut self, jpeg_data: &[u8], output: YuvImage<&mut [u8]>) -> Result<()> {
         output.assert_valid(output.pixels.len());
     
-        let YuvImage { pixels, width, pad, height , subsamp: _ } = output;
+        let YuvImage { pixels, width, align, height , subsamp: _ } = output;
         let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let pad = pad.try_into().map_err(|_| Error::IntegerOverflow("pad"))?;
+        let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
         let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
         let jpeg_data_len = jpeg_data.len().try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
@@ -195,7 +196,7 @@ impl Decompressor {
             raw::tjDecompressToYUV2(
                 self.handle,
                 jpeg_data.as_ptr(), jpeg_data_len,
-                pixels.as_mut_ptr(), width, pad, height,
+                pixels.as_mut_ptr(), width, align, height,
                 0,
             )
         };
@@ -270,10 +271,10 @@ pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>
 pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;
-    let yuv_video_pad = 4;
+    let yuv_video_align = 4;
     let yuv_pixels_len = yuv_pixels_len(
         header.width,
-        yuv_video_pad,
+        yuv_video_align,
         header.height,
         header.subsamp,
     )?;
@@ -281,7 +282,7 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     let mut yuv_image = YuvImage {
         pixels: vec![0; yuv_pixels_len],
         width: header.width,
-        pad: yuv_video_pad,
+        align: yuv_video_align,
         height: header.height,
         subsamp: header.subsamp,
     };
@@ -302,19 +303,19 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
 ///
 /// // read the JPEG header
 /// let header = turbojpeg::read_header(&jpeg_data)?;
-/// // get yuv frame size
-/// let yuv_video_pad = 4;
-/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, yuv_video_pad, header.height, header.subsamp);
+/// // get yuv pixels length
+/// let yuv_video_align = 4;
+/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, yuv_video_align, header.height, header.subsamp);
 /// assert_eq!(yuv_pixels_len.unwrap(), 294912);
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn yuv_pixels_len(width: usize, pad: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
+pub fn yuv_pixels_len(width: usize, align: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
     let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-    let pad = pad.try_into().map_err(|_| Error::IntegerOverflow("pad"))?;
+    let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
     let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
     let yuv_size = unsafe {
-        raw::tjBufSizeYUV2(width, pad, height, subsamp as libc::c_int)
+        raw::tjBufSizeYUV2(width, align, height, subsamp as libc::c_int)
     };
     let yuv_size = yuv_size.try_into().map_err(|_| Error::IntegerOverflow("yuv size"))?;
 

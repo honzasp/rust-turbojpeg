@@ -187,41 +187,97 @@ pub enum Subsamp {
 }
 
 impl Subsamp {
-    pub(crate) fn from_u32(subsamp: u32) -> Result<Subsamp> {
+    pub(crate) fn from_u32(subsamp: u32) -> Result<Self> {
         Ok(match subsamp {
-            raw::TJSAMP_TJSAMP_444 => Subsamp::None,
-            raw::TJSAMP_TJSAMP_422 => Subsamp::Sub2x1,
-            raw::TJSAMP_TJSAMP_420 => Subsamp::Sub2x2,
-            raw::TJSAMP_TJSAMP_GRAY => Subsamp::Gray,
-            raw::TJSAMP_TJSAMP_440 => Subsamp::Sub1x2,
-            raw::TJSAMP_TJSAMP_411 => Subsamp::Sub4x1,
+            raw::TJSAMP_TJSAMP_444 => Self::None,
+            raw::TJSAMP_TJSAMP_422 => Self::Sub2x1,
+            raw::TJSAMP_TJSAMP_420 => Self::Sub2x2,
+            raw::TJSAMP_TJSAMP_GRAY => Self::Gray,
+            raw::TJSAMP_TJSAMP_440 => Self::Sub1x2,
+            raw::TJSAMP_TJSAMP_411 => Self::Sub4x1,
             other => return Err(Error::BadSubsamp(other)),
         })
     }
 
     /// Get the width of the MCU block for this level of chrominance subsampling.
+    ///
+    /// This is equal to `8 * self.width()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// assert_eq!(turbojpeg::Subsamp::Sub2x1.mcu_width(), 16);
+    /// ```
     #[doc(alias = "tjMCUWidth")]
     pub fn mcu_width(self) -> usize {
-        self.mcu_size().0
+        8 * self.width()
     }
 
     /// Get the height of the MCU block for this level of chrominance subsampling.
+    ///
+    /// This is equal to `8 * self.height()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// assert_eq!(turbojpeg::Subsamp::Sub2x1.mcu_height(), 8);
+    /// ```
     #[doc(alias = "tjMCUHeight")]
     pub fn mcu_height(self) -> usize {
-        self.mcu_size().1
+        8 * self.height()
     }
 
     /// Get the size of the MCU block for this level of chrominance subsampling as (width, height).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// assert_eq!(turbojpeg::Subsamp::Sub2x1.mcu_size(), (16, 8));
+    /// ```
     #[doc(alias = "tjMCUWidth")]
     #[doc(alias = "tjMCUHeight")]
     pub fn mcu_size(self) -> (usize, usize) {
+        let (width, height) = self.size();
+        (8 * width, 8 * height)
+    }
+
+    /// Get the horizontal subsampling factor.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// assert_eq!(turbojpeg::Subsamp::Sub2x1.width(), 2);
+    /// ```
+    pub fn width(self) -> usize {
+        self.size().0
+    }
+
+    /// Get the vertical subsampling factor.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// assert_eq!(turbojpeg::Subsamp::Sub2x1.height(), 1);
+    /// ```
+    pub fn height(self) -> usize {
+        self.size().1
+    }
+
+    /// Get the horizontal and vertical subsampling factors.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// assert_eq!(turbojpeg::Subsamp::Sub2x1.size(), (2, 1));
+    /// ```
+    pub fn size(self) -> (usize, usize) {
         match self {
-            Subsamp::None => (8, 8),
-            Subsamp::Sub2x1 => (16, 8),
-            Subsamp::Sub2x2 => (16, 16),
-            Subsamp::Gray => (8, 8),
-            Subsamp::Sub1x2 => (8, 16),
-            Subsamp::Sub4x1 => (32, 8),
+            Self::None => (1, 1),
+            Self::Sub2x1 => (2, 1),
+            Self::Sub2x2 => (2, 2),
+            Self::Gray => (1, 1),
+            Self::Sub1x2 => (1, 2),
+            Self::Sub4x1 => (4, 1),
         }
     }
 }

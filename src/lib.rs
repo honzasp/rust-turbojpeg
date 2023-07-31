@@ -97,8 +97,8 @@ mod transform;
 pub use self::buf::{OwnedBuf, OutputBuf};
 pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
 pub use self::compress::{Compressor, compress, compressed_buf_len};
-pub use self::decompress::{Decompressor, DecompressHeader, decompress, read_header, decompress_to_yuv, yuv_frame_size};
-pub use self::image::{Image, YUVImage};
+pub use self::decompress::{Decompressor, DecompressHeader, decompress, read_header};
+pub use self::image::Image;
 pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};
 
 #[cfg(feature = "image")]

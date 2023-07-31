@@ -191,8 +191,8 @@ pub fn compress(image: Image<&[u8]>, quality: i32, subsamp: Subsamp) -> Result<O
 ///
 /// This depends on image `width` and `height` and also on the chrominance subsampling method.
 ///
-/// Returns an error on integer overflow (you can just `.unwrap()` the result if you don't care
-/// about this edge case).
+/// Returns an error on integer overflow. You can just `.unwrap()` the result if you don't care
+/// about this edge case.
 #[doc(alias = "tjBufSize")]
 pub fn compressed_buf_len(width: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
     let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;

@@ -162,15 +162,15 @@ impl Decompressor {
     ///
     /// // read the JPEG header
     /// let header = decompressor.read_header(&jpeg_data)?;
-    /// // calculate yuv pixels length
-    /// let yuv_video_align = 4;
-    /// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, yuv_video_align, header.height, header.subsamp);
+    /// // calculate YUV pixels length
+    /// let align = 4;
+    /// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, header.subsamp);
     ///
     /// // initialize the image (YuvImage<Vec<u8>>)
     /// let mut image = turbojpeg::YuvImage {
     ///     pixels: vec![0; yuv_pixels_len.unwrap()],
     ///     width: header.width,
-    ///     align: yuv_video_align, // for video
+    ///     align,
     ///     height: header.height,
     ///     subsamp: header.subsamp,
     /// };
@@ -253,7 +253,8 @@ pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>
 
 /// Decompress a JPEG image to YUV.
 ///
-/// Returns a newly allocated yuv image
+/// Returns a newly allocated YUV image with row alignment of 4. If you have specific requirements
+/// regarding memory layout or allocations, please see [`Decompressor`].
 ///
 /// # Example
 ///
@@ -271,10 +272,10 @@ pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>
 pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;
-    let yuv_video_align = 4;
+    let align = 4;
     let yuv_pixels_len = yuv_pixels_len(
         header.width,
-        yuv_video_align,
+        align,
         header.height,
         header.subsamp,
     )?;
@@ -282,7 +283,7 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     let mut yuv_image = YuvImage {
         pixels: vec![0; yuv_pixels_len],
         width: header.width,
-        align: yuv_video_align,
+        align,
         height: header.height,
         subsamp: header.subsamp,
     };
@@ -291,9 +292,13 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     Ok(yuv_image)
 }
 
-/// Determine size in bytes of a yuv image
+/// Determine size in bytes of a YUV image.
 ///
-/// Returns size in bytes of a yuv image
+/// Calculates the size for [`YuvImage::pixels`] based on the image width, height, chrominance
+/// subsampling and row alignment.
+///
+/// Returns an error on integer overflow. You can just `.unwrap()` the result if you don't care
+/// about this edge case.
 /// 
 /// # Example
 ///
@@ -303,23 +308,21 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
 ///
 /// // read the JPEG header
 /// let header = turbojpeg::read_header(&jpeg_data)?;
-/// // get yuv pixels length
-/// let yuv_video_align = 4;
-/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, yuv_video_align, header.height, header.subsamp);
+/// // get YUV pixels length
+/// let align = 4;
+/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, header.subsamp);
 /// assert_eq!(yuv_pixels_len.unwrap(), 294912);
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+#[doc(alias = "tjBufSizeYUV2")]
 pub fn yuv_pixels_len(width: usize, align: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
     let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
     let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
     let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-    let yuv_size = unsafe {
-        raw::tjBufSizeYUV2(width, align, height, subsamp as libc::c_int)
-    };
-    let yuv_size = yuv_size.try_into().map_err(|_| Error::IntegerOverflow("yuv size"))?;
-
-    Ok(yuv_size)
+    let len = unsafe { raw::tjBufSizeYUV2(width, align, height, subsamp as libc::c_int) };
+    let len = len.try_into().map_err(|_| Error::IntegerOverflow("yuv size"))?;
+    Ok(len)
 }
 
 /// Read the JPEG header without decompressing the image.

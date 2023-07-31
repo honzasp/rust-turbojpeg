@@ -5,6 +5,8 @@
 //! - [Lossless transformations][transform()]: apply basic geometric transformations (rotate, mirror,
 //! ...) without going through decompression and compression, so that the image does not lose
 //! quality.
+//! - [Decompression into YUV][decompress_to_yuv()]: decode JPEG into YUV (YCbCr), without
+//! performing the color transform into RGB.
 //!
 //! # Integration with image-rs
 //! 
@@ -55,10 +57,11 @@
 //! transformations are described in the [`Transform`] struct.
 //! - **Read header** of JPEG image to get its size without decompression using
 //! [`Decompressor::read_header()`] or [`read_header()`].
+//! - **Decompress** images **into YUV** using [`decompress_to_yuv()`] or [`Decompressor`].
 //! 
 //! # The [`OutputBuf`] and [`OwnedBuf`] types
 //!
-//! During decompression, we need to write the produced JPEG data into some memory buffer. You have
+//! During compression, we need to write the produced JPEG data into some memory buffer. You have
 //! two options:
 //!
 //! - Write the data into a mutable slice (`&mut [u8]`) that you already allocated and initialized.

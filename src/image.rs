@@ -176,7 +176,7 @@ impl Image<Vec<u8>> {
 ///
 /// - `YuvImage<&mut [u8]>`: mutable reference to YUV image data (output image for decompression by
 /// [`Decompressor`][crate::Decompressor]).
-/// - `YuvImage<Vec<u8>>`: owned yuv image data (you can convert it to a reference using
+/// - `YuvImage<Vec<u8>>`: owned YUV image data (you can convert it to a reference using
 /// [`.as_deref()`][YuvImage::as_deref] or [`.as_deref_mut()`][YuvImage::as_deref_mut]).
 ///
 /// # Image format
@@ -202,7 +202,7 @@ impl Image<Vec<u8>> {
 /// luminance plane would be 36 x 35 bytes, and each of the chrominance planes would be 20 x 35
 /// bytes.
 ///
-/// ```rust
+/// ```
 /// let img1 = turbojpeg::YuvImage {
 ///     pixels: (),
 ///     width: 35,
@@ -222,7 +222,7 @@ pub struct YuvImage<T> {
     pub pixels: T,
     /// Width of the image in pixels (number of columns).
     pub width: usize,
-    /// Row alignment (in bytes) of the YUV image (must be a power of 2.) Each row in each plane of
+    /// Row alignment (in bytes) of the YUV image (must be a power of 2). Each row in each plane of
     /// the YUV image will be padded to the nearest multiple of `align`.
     pub align: usize,
     /// Height of the image in pixels (number of rows).

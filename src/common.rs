@@ -205,7 +205,7 @@ impl Subsamp {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
     /// assert_eq!(turbojpeg::Subsamp::Sub2x1.mcu_width(), 16);
     /// ```
     #[doc(alias = "tjMCUWidth")]
@@ -219,7 +219,7 @@ impl Subsamp {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
     /// assert_eq!(turbojpeg::Subsamp::Sub2x1.mcu_height(), 8);
     /// ```
     #[doc(alias = "tjMCUHeight")]
@@ -231,7 +231,7 @@ impl Subsamp {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
     /// assert_eq!(turbojpeg::Subsamp::Sub2x1.mcu_size(), (16, 8));
     /// ```
     #[doc(alias = "tjMCUWidth")]

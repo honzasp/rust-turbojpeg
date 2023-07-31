@@ -171,7 +171,6 @@ impl Decompressor {
     ///     width: header.width,
     ///     pad: 4, // for video
     ///     height: header.height,
-    ///     subsamp: header.subsamp,
     /// };
     ///
     /// // decompress the JPEG into the image

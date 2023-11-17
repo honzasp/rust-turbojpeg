@@ -131,7 +131,7 @@ impl PixelFormat {
 /// This is called "chrominance subsampling".
 #[doc(alias = "TJSAMP")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u32)]
+#[repr(i32)]
 pub enum Subsamp {
     /// No chrominance subsampling (4:4:4);
     ///
@@ -187,7 +187,7 @@ pub enum Subsamp {
 }
 
 impl Subsamp {
-    pub(crate) fn from_u32(subsamp: u32) -> Result<Self> {
+    pub(crate) fn from_i32(subsamp: i32) -> Result<Self> {
         Ok(match subsamp {
             raw::TJSAMP_TJSAMP_444 => Self::None,
             raw::TJSAMP_TJSAMP_422 => Self::Sub2x1,
@@ -286,7 +286,7 @@ impl Subsamp {
 /// JPEG colorspaces.
 #[doc(alias = "TJCS")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u32)]
+#[repr(i32)]
 pub enum Colorspace {
     /// RGB colorspace.
     ///
@@ -342,7 +342,7 @@ pub enum Colorspace {
 }
 
 impl Colorspace {
-    pub(crate) fn from_u32(colorspace: u32) -> Result<Colorspace> {
+    pub(crate) fn from_i32(colorspace: i32) -> Result<Colorspace> {
         Ok(match colorspace {
             raw::TJCS_TJCS_RGB => Colorspace::RGB,
             raw::TJCS_TJCS_YCbCr => Colorspace::YCbCr,
@@ -371,11 +371,11 @@ pub enum Error {
 
     /// TurboJPEG returned a chrominance subsampling variant that is not known by this crate.
     #[error("TurboJPEG returned unknown subsampling option: {0}")]
-    BadSubsamp(u32),
+    BadSubsamp(i32),
 
     /// TurboJPEG returned a colorspace variant that is not known by this crate.
     #[error("TurboJPEG returned unknown colorspace: {0}")]
-    BadColorspace(u32),
+    BadColorspace(i32),
 
     /// The given integer value overflowed when converted into type expected by TurboJPEG.
     #[error("integer value {0:?} overflowed")]

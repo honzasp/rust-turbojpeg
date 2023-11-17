@@ -104,7 +104,7 @@ pub struct Transform {
 /// Transform operation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[doc(alias = "TJXOP")]
-#[repr(u32)]
+#[repr(i32)]
 pub enum TransformOp {
     /// No transformation (noop).
     #[doc(alias = "TJXOP_NONE")]

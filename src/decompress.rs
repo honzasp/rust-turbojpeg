@@ -76,8 +76,8 @@ impl Decompressor {
         if res == 0 {
             let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
             let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-            let subsamp = Subsamp::from_u32(subsamp as u32)?;
-            let colorspace = Colorspace::from_u32(colorspace as u32)?;
+            let subsamp = Subsamp::from_i32(subsamp as i32)?;
+            let colorspace = Colorspace::from_i32(colorspace as i32)?;
             Ok(DecompressHeader { width, height, subsamp, colorspace })
         } else {
             Err(unsafe { get_error(self.handle) })

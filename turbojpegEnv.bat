@@ -1,0 +1,5 @@
+SET TURBOJPEG_STATIC=1
+SET TURBOJPEG_SOURCE=explicit
+SET TURBOJPEG_LIB_DIR=D:\\Programs\\libjpeg-turbo3010\\lib
+SET TURBOJPEG_INCLUDE_DIR=D:\\Programs\\libjpeg-turbo3010\\include
+SET TURBOJPEG_BINDING=bindgen

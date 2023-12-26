@@ -131,7 +131,7 @@ impl PixelFormat {
 /// This is called "chrominance subsampling".
 #[doc(alias = "TJSAMP")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u32)]
+#[repr(i32)]
 pub enum Subsamp {
     /// No chrominance subsampling (4:4:4);
     ///
@@ -187,7 +187,7 @@ pub enum Subsamp {
 }
 
 impl Subsamp {
-    pub(crate) fn from_u32(subsamp: u32) -> Result<Self> {
+    pub(crate) fn from_i32(subsamp: i32) -> Result<Self> {
         Ok(match subsamp {
             raw::TJSAMP_TJSAMP_444 => Self::None,
             raw::TJSAMP_TJSAMP_422 => Self::Sub2x1,
@@ -371,7 +371,7 @@ pub enum Error {
 
     /// TurboJPEG returned a chrominance subsampling variant that is not known by this crate.
     #[error("TurboJPEG returned unknown subsampling option: {0}")]
-    BadSubsamp(u32),
+    BadSubsamp(i32),
 
     /// TurboJPEG returned a colorspace variant that is not known by this crate.
     #[error("TurboJPEG returned unknown colorspace: {0}")]

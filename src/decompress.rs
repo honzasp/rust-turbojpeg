@@ -1,12 +1,13 @@
 use std::convert::TryInto as _;
 use crate::{Image, YuvImage, raw};
-use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error, get_error};
+use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
+use crate::handle::Handle;
 
 /// Decompresses JPEG data into raw pixels.
 #[derive(Debug)]
 #[doc(alias = "tjhandle")]
 pub struct Decompressor {
-    handle: raw::tjhandle,
+    handle: Handle,
 }
 
 unsafe impl Send for Decompressor {}
@@ -16,6 +17,7 @@ unsafe impl Send for Decompressor {}
 /// The header can be obtained without decompressing the image by calling
 /// [`Decompressor::read_header()`] or [`read_header()`][crate::read_header].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct DecompressHeader {
     /// Width of the image in pixels (number of columns).
     pub width: usize,
@@ -29,16 +31,10 @@ pub struct DecompressHeader {
 
 impl Decompressor {
     /// Create a new decompressor instance.
-    #[doc(alias = "tjInitDecompress")]
+    #[doc(alias = "tj3Init")]
     pub fn new() -> Result<Decompressor> {
-        unsafe {
-            let handle = raw::tjInitDecompress();
-            if !handle.is_null() {
-                Ok(Decompressor { handle })
-            } else {
-                Err(get_error(handle))
-            }
-        }
+        let handle = Handle::new(raw::TJINIT_TJINIT_DECOMPRESS)?;
+        Ok(Self { handle })
     }
 
     /// Read the JPEG header without decompressing the image.
@@ -58,30 +54,24 @@ impl Decompressor {
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
+    #[doc(alias = "tj3DecompressHeader")]
     pub fn read_header(&mut self, jpeg_data: &[u8]) -> Result<DecompressHeader> {
         let jpeg_data_len = jpeg_data.len().try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
-        let mut width = 0;
-        let mut height = 0;
-        let mut subsamp = 0;
-        let mut colorspace = 0;
         let res = unsafe {
-            raw::tjDecompressHeader3(
-                self.handle,
-                jpeg_data.as_ptr(), jpeg_data_len,
-                &mut width, &mut height, &mut subsamp, &mut colorspace,
-            )
+            raw::tj3DecompressHeader(self.handle.as_ptr(), jpeg_data.as_ptr(), jpeg_data_len)
         };
-
-        if res == 0 {
-            let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-            let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-            let subsamp = Subsamp::from_i32(subsamp)?;
-            let colorspace = Colorspace::from_u32(colorspace as u32)?;
-            Ok(DecompressHeader { width, height, subsamp, colorspace })
-        } else {
-            Err(unsafe { get_error(self.handle) })
+        if res != 0 {
+            return Err(self.handle.get_error())
         }
+
+        let width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH)
+            .try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+        let height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT)
+            .try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+        let subsamp = Subsamp::from_int(self.handle.get(raw::TJPARAM_TJPARAM_SUBSAMP))?;
+        let colorspace = Colorspace::from_int(self.handle.get(raw::TJPARAM_TJPARAM_COLORSPACE))?;
+        Ok(DecompressHeader { width, height, subsamp, colorspace })
     }
 
     /// Decompress a JPEG image in `jpeg_data` into `output`.
@@ -118,31 +108,43 @@ impl Decompressor {
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    #[doc(alias = "tjDecompress2")]
+    #[doc(alias = "tj3Decompress8")]
     pub fn decompress(&mut self, jpeg_data: &[u8], output: Image<&mut [u8]>) -> Result<()> {
         output.assert_valid(output.pixels.len());
-
         let Image { pixels, width, pitch, height, format } = output;
-        let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let pitch = pitch.try_into().map_err(|_| Error::IntegerOverflow("pitch"))?;
-        let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-        let jpeg_data_len = jpeg_data.len().try_into()
-            .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
+        let width: libc::c_int = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+        let pitch: libc::c_int = pitch.try_into().map_err(|_| Error::IntegerOverflow("pitch"))?;
+        let height: libc::c_int = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
 
         let res = unsafe {
-            raw::tjDecompress2(
-                self.handle,
-                jpeg_data.as_ptr(), jpeg_data_len,
-                pixels.as_mut_ptr(), width, pitch, height, format as i32,
-                0,
+            raw::tj3DecompressHeader(
+                self.handle.as_ptr(),
+                jpeg_data.as_ptr(),
+                jpeg_data.len() as raw::size_t,
             )
         };
-
-        if res == 0 {
-            Ok(())
-        } else {
-            Err(unsafe { get_error(self.handle) })
+        if res != 0 {
+            return Err(self.handle.get_error())
         }
+
+        let jpeg_width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH);
+        let jpeg_height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT);
+        if width < jpeg_width || height < jpeg_height {
+            return Err(Error::OutputTooSmall(jpeg_width as i32, jpeg_height as i32))
+        }
+
+        let res = unsafe {
+            raw::tj3Decompress8(
+                self.handle.as_ptr(),
+                jpeg_data.as_ptr(), jpeg_data.len() as raw::size_t,
+                pixels.as_mut_ptr(), pitch, format as i32,
+            )
+        };
+        if res != 0 {
+            return Err(self.handle.get_error())
+        }
+
+        Ok(())
     }
 
     /// Decompress a JPEG image in `jpeg_data` into `output` as YUV without changing color space.
@@ -182,36 +184,41 @@ impl Decompressor {
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    #[doc(alias = "tjDecompressToYUV2")]
+    #[doc(alias = "tj3DecompressToYUV8")]
     pub fn decompress_to_yuv(&mut self, jpeg_data: &[u8], output: YuvImage<&mut [u8]>) -> Result<()> {
         output.assert_valid(output.pixels.len());
-    
-        let YuvImage { pixels, width, align, height , subsamp: _ } = output;
-        let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+        let YuvImage { pixels, width, align, height, subsamp: _ } = output;
+        let width: libc::c_int = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
         let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
-        let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+        let height: libc::c_int = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
         let jpeg_data_len = jpeg_data.len().try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
+
         let res = unsafe {
-            raw::tjDecompressToYUV2(
-                self.handle,
+            raw::tj3DecompressHeader(self.handle.as_ptr(), jpeg_data.as_ptr(), jpeg_data_len)
+        };
+        if res != 0 {
+            return Err(self.handle.get_error())
+        }
+
+        let jpeg_width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH);
+        let jpeg_height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT);
+        if width < jpeg_width || height < jpeg_height {
+            return Err(Error::OutputTooSmall(jpeg_width as i32, jpeg_height as i32))
+        }
+
+        let res = unsafe {
+            raw::tj3DecompressToYUV8(
+                self.handle.as_ptr(),
                 jpeg_data.as_ptr(), jpeg_data_len,
-                pixels.as_mut_ptr(), width, align, height,
-                0,
+                pixels.as_mut_ptr(), align,
             )
         };
-
-        if res == 0 {
-            Ok(())
-        } else {
-            Err(unsafe { get_error(self.handle) })
+        if res != 0 {
+            return Err(self.handle.get_error())
         }
-    }
-}
 
-impl Drop for Decompressor {
-    fn drop(&mut self) {
-        unsafe { raw::tjDestroy(self.handle); }
+        Ok(())
     }
 }
 
@@ -315,12 +322,12 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[doc(alias = "tjBufSizeYUV2")]
+#[doc(alias = "tj3YUVBufSize")]
 pub fn yuv_pixels_len(width: usize, align: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
     let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
     let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
     let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-    let len = unsafe { raw::tjBufSizeYUV2(width, align, height, subsamp as libc::c_int) };
+    let len = unsafe { raw::tj3YUVBufSize(width, align, height, subsamp as libc::c_int) };
     let len = len.try_into().map_err(|_| Error::IntegerOverflow("yuv size"))?;
     Ok(len)
 }

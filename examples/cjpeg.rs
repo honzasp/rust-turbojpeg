@@ -28,7 +28,7 @@ fn main() -> Result<()> {
 
     if let Some(quality) = args.value_of("QUALITY") {
         let quality = quality.parse().context("could not parse value of --quality")?;
-        compressor.set_quality(quality);
+        compressor.set_quality(quality)?;
     }
 
     let image_jpeg = compressor.compress_to_owned(Image {

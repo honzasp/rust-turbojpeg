@@ -95,6 +95,7 @@ mod buf;
 mod common;
 mod compress;
 mod decompress;
+mod handle;
 mod image;
 mod transform;
 pub use self::buf::{OwnedBuf, OutputBuf};

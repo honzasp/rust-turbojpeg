@@ -1,5 +1,3 @@
-use std::ffi::CStr;
-
 /// Pixel format determines the layout of pixels in memory.
 #[doc(alias = "TJPF")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -132,6 +130,7 @@ impl PixelFormat {
 #[doc(alias = "TJSAMP")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(i32)]
+#[non_exhaustive]
 pub enum Subsamp {
     /// No chrominance subsampling (4:4:4);
     ///
@@ -184,10 +183,24 @@ pub enum Subsamp {
     /// 4:1:1 subsampling is not fully accelerated in libjpeg-turbo.
     #[doc(alias = "TJSAMP_411")]
     Sub4x1 = raw::TJSAMP_TJSAMP_411,
+
+    /// 1x4 chrominance subsampling (4:4:1).
+    ///
+    /// The JPEG or YUV image will contain one chrominance component for every 1x4 block of pixels
+    /// in the source image. JPEG images compressed with 4:4:1 subsampling will be almost exactly
+    /// the same size as those compressed with 4:2:0 subsampling, and in the aggregate, both
+    /// subsampling methods produce approximately the same perceptual quality.  However, 4:4:1 is
+    /// better able to reproduce sharp vertical features.
+    ///
+    /// # Note
+    ///
+    /// 4:4:1 subsampling is not fully accelerated in libjpeg-turbo.
+    #[doc(alias = "TJSAMP_441")]
+    Sub1x4 = raw::TJSAMP_TJSAMP_441,
 }
 
 impl Subsamp {
-    pub(crate) fn from_i32(subsamp: i32) -> Result<Self> {
+    pub(crate) fn from_int(subsamp: libc::c_int) -> Result<Self> {
         Ok(match subsamp {
             raw::TJSAMP_TJSAMP_444 => Self::None,
             raw::TJSAMP_TJSAMP_422 => Self::Sub2x1,
@@ -278,6 +291,7 @@ impl Subsamp {
             Self::Gray => (1, 1),
             Self::Sub1x2 => (1, 2),
             Self::Sub4x1 => (4, 1),
+            Self::Sub1x4 => (1, 4),
         }
     }
 }
@@ -342,8 +356,8 @@ pub enum Colorspace {
 }
 
 impl Colorspace {
-    pub(crate) fn from_u32(colorspace: u32) -> Result<Colorspace> {
-        Ok(match colorspace {
+    pub(crate) fn from_int(colorspace: libc::c_int) -> Result<Colorspace> {
+        Ok(match colorspace as libc::c_uint {
             raw::TJCS_TJCS_RGB => Colorspace::RGB,
             raw::TJCS_TJCS_YCbCr => Colorspace::YCbCr,
             raw::TJCS_TJCS_GRAY => Colorspace::Gray,
@@ -360,6 +374,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// An error that can occur in TurboJPEG.
 #[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// TurboJPEG returned an error message.
     #[error("TurboJPEG error: {0}")]
@@ -367,7 +382,7 @@ pub enum Error {
     
     /// TurboJPEG unexpectedly returned a null pointer, prehaps because it ran out of memory.
     #[error("TurboJPEG returned null pointer")]
-    Null(),
+    Null,
 
     /// TurboJPEG returned a chrominance subsampling variant that is not known by this crate.
     #[error("TurboJPEG returned unknown subsampling option: {0}")]
@@ -380,9 +395,9 @@ pub enum Error {
     /// The given integer value overflowed when converted into type expected by TurboJPEG.
     #[error("integer value {0:?} overflowed")]
     IntegerOverflow(&'static str),
+
+    /// When decompressing, the output image is too small for the input JPEG image.
+    #[error("output image is too small for image of size {0}x{1}")]
+    OutputTooSmall(i32, i32),
 }
 
-pub(crate) unsafe fn get_error(handle: raw::tjhandle) -> Error {
-    let msg = CStr::from_ptr(raw::tjGetErrorStr2(handle));
-    Error::TurboJpegError(msg.to_string_lossy().into_owned())
-}

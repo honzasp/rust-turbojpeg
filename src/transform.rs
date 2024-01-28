@@ -1,7 +1,8 @@
 use std::ptr;
 use std::convert::TryInto as _;
 use crate::buf::{OwnedBuf, OutputBuf};
-use crate::common::{Error, Result, get_error};
+use crate::common::{Error, Result};
+use crate::handle::Handle;
 
 /// Transforms JPEG images without recompression.
 ///
@@ -10,7 +11,7 @@ use crate::common::{Error, Result, get_error};
 #[derive(Debug)]
 #[doc(alias = "tjhandle")]
 pub struct Transformer {
-    handle: raw::tjhandle,
+    handle: Handle,
 }
 
 /// Lossless transform of a JPEG image.
@@ -189,16 +190,10 @@ pub struct TransformCrop {
 
 impl Transformer {
     /// Create a new transformer instance.
-    #[doc(alias = "tjInitTransform")]
+    #[doc(alias = "tj3Init")]
     pub fn new() -> Result<Transformer> {
-        unsafe {
-            let handle = raw::tjInitTransform();
-            if !handle.is_null() {
-                Ok(Transformer { handle })
-            } else {
-                Err(get_error(handle))
-            }
-        }
+        let handle = Handle::new(raw::TJINIT_TJINIT_TRANSFORM)?;
+        Ok(Self { handle })
     }
 
     /// Apply a transformation to the compressed JPEG.
@@ -233,7 +228,7 @@ impl Transformer {
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    #[doc(alias = "tjTransform")]
+    #[doc(alias = "tj3Transform")]
     pub fn transform(
         &mut self,
         transform: &Transform,
@@ -271,27 +266,28 @@ impl Transformer {
             customFilter: None,
         };
 
-        let mut output_len = output.len as libc::c_ulong;
+        self.handle.set(
+            raw::TJPARAM_TJPARAM_NOREALLOC,
+            if output.is_owned { 0 } else { 1 } as libc::c_int,
+        )?;
+        let mut output_len = output.len as raw::size_t;
         let res = unsafe {
-            raw::tjTransform(
-                self.handle,
-                jpeg_data.as_ptr(), jpeg_data.len() as libc::c_ulong,
+            raw::tj3Transform(
+                self.handle.as_ptr(),
+                jpeg_data.as_ptr(), jpeg_data.len() as raw::size_t,
                 1, &mut output.ptr, &mut output_len,
                 &mut transform,
-                if output.is_owned { 0 } else { raw::TJFLAG_NOREALLOC } as libc::c_int,
             )
         };
-
         output.len = output_len as usize;
-
         if res != 0 {
-            Err(unsafe { get_error(self.handle) })
+            return Err(self.handle.get_error())
         } else if output.ptr.is_null() {
             output.len = 0;
-            Err(Error::Null())
-        } else {
-            Ok(())
+            return Err(Error::Null)
         }
+
+        Ok(())
     }
 
     /// Transforms the `image` into an owned buffer.
@@ -334,12 +330,6 @@ impl Transformer {
         Ok(buf.len())
     }
 
-}
-
-impl Drop for Transformer {
-    fn drop(&mut self) {
-        unsafe { raw::tjDestroy(self.handle); }
-    }
 }
 
 /// Losslessly transform a JPEG image without recompression.

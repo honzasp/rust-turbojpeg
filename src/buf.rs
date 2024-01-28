@@ -38,9 +38,9 @@ impl OwnedBuf {
     ///
     /// Panics if `len` overflows or if the memory cannot be allocated.
     pub fn allocate(len: usize) -> OwnedBuf {
-        let ptr = unsafe { raw::tjAlloc(len as libc::c_int) };
-        assert!(!ptr.is_null(), "tjAlloc() returned null");
-        OwnedBuf { ptr, len }
+        let ptr = unsafe { raw::tj3Alloc(len as raw::size_t) };
+        assert!(!ptr.is_null(), "tj3Alloc() returned null");
+        OwnedBuf { ptr: ptr as *mut u8, len }
     }
 
     /// Creates a new buffer copied from a slice.
@@ -58,7 +58,7 @@ impl OwnedBuf {
 
 impl Drop for OwnedBuf {
     fn drop(&mut self) {
-        unsafe { raw::tjFree(self.ptr) };
+        unsafe { raw::tj3Free(self.ptr as *mut libc::c_void) };
     }
 }
 
@@ -160,7 +160,7 @@ impl<'a> OutputBuf<'a> {
 impl<'a> Drop for OutputBuf<'a> {
     fn drop(&mut self) {
         if self.is_owned {
-            unsafe { raw::tjFree(self.ptr) };
+            unsafe { raw::tj3Free(self.ptr as *mut libc::c_void) };
         }
     }
 }

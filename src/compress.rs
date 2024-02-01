@@ -60,6 +60,32 @@ impl Compressor {
         self.handle.set(raw::TJPARAM_TJPARAM_SUBSAMP, subsamp as i32 as libc::c_int)
     }
 
+    /// Enable/disable optimized baseline entropy coding.
+    ///
+    /// When enabled, optimal Huffman tables will be computed for the JPEG image. Optimized
+    /// baseline entropy coding will improve compression slightly (generally 5% or less), but it
+    /// will reduce compression performance considerably.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let image = turbojpeg::Image::mandelbrot(500, 500, turbojpeg::PixelFormat::RGB);
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    ///
+    /// compressor.set_optimize(false)?;
+    /// let unoptimized = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// compressor.set_optimize(true)?;
+    /// let optimized = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// assert!(optimized.len() < unoptimized.len());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    #[doc(alias = "TJPARAM_OPTIMIZE")]
+    pub fn set_optimize(&mut self, optimize: bool) -> Result<()> {
+        self.handle.set(raw::TJPARAM_TJPARAM_OPTIMIZE, optimize as libc::c_int)
+    }
+
     /// Compresses the `image` into `output` buffer.
     ///
     /// This is the main compression method, which gives you full control of the output buffer. If

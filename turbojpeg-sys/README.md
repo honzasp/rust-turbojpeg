@@ -6,6 +6,10 @@ work with JPEG files in Rust, you should use the high-level bindings from the
 
 [libjpeg-turbo]: https://libjpeg-turbo.org/
 
+These bindings are for TurboJPEG version 3.0 and use the new API (prefixed with
+`tj3`). Note that most package managers for Linux have only TurboJPEG 2.0 or
+2.1.
+
 ## Building
 
 We support multiple options for building the native TurboJPEG library and
@@ -23,10 +27,10 @@ TurboJPEG is written in C, so we must either compile it ourselves, or look up a
 compiled library on your system. You can control what we do using
 `TURBOJPEG_SOURCE` environment variable:
 
-- `TURBOJPEG_SOURCE=vendor` (default if the `cmake` feature is enabled): we
-    build TurboJPEG from source using the [`cmake`][cmake-crate] crate and link
-    it to your Rust executable. We use TurboJPEG sources that are bundled with
-    the crate (version 3.0.1). This is the recommended option.
+- `TURBOJPEG_SOURCE=vendor` (**recommended**, default if the `cmake` feature is
+    enabled): we build TurboJPEG from source using the [`cmake`][cmake-crate]
+    crate and link it to your Rust executable. We use TurboJPEG sources that are
+    bundled with the crate (version 3.0.1).
 
     This option requires a C compiler, and if you want to compile the SIMD code
     that actually makes TurboJPEG fast, you will also [need NASM or

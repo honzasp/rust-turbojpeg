@@ -14,7 +14,7 @@ operations for JPEG images:
 To quickly encode and decode images from the [`image`][image-rs] crate, add this
 to the `[dependencies]` section in your `Cargo.toml`:
 
-    turbojpeg = {version = "0.5", features = ["image"]}
+    turbojpeg = {version = "1.0", features = ["image"]}
 
 and then use the functions [`turbojpeg::decompress_image`][decompress] and
 [`turbojpeg::compress_image`][compress].
@@ -31,7 +31,7 @@ documentation][docs].
 
 The low-level binding to `libturbojpeg` is provided by the crate
 `turbojpeg-sys`, which needs to link to the C library. Typically, you will need
-a C compiler and NASM to build the library from source, but see [its
+CMake, a C compiler and NASM to build the library from source, but see [its
 README][sys-readme] for details.
 
 [sys-readme]: https://github.com/honzasp/rust-turbojpeg/tree/master/turbojpeg-sys

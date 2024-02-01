@@ -82,7 +82,7 @@ fn find_pkg_config(link_kind: LinkKind) -> Result<Library> {
     println!("Using pkg-config to find libturbojpeg");
 
     let mut cfg = pkg_config::Config::new();
-    cfg.atleast_version("2.0");
+    cfg.atleast_version("3.0");
     match link_kind {
         LinkKind::Static => { cfg.statik(true); },
         LinkKind::Dynamic => { cfg.statik(false); },

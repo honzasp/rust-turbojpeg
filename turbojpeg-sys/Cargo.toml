@@ -1,13 +1,13 @@
 [package]
 name = "turbojpeg-sys"
-version = "0.2.3"
+version = "1.0.0-pre"
 edition = "2021"
 resolver = "2"
 
 authors = ["Jan Špaček <patek.mail@gmail.com>"]
 homepage = "https://github.com/honzasp/rust-turbojpeg"
 repository = "https://github.com/honzasp/rust-turbojpeg/turbojpeg-sys"
-license = "Unlicense"
+license = "Unlicense OR MIT"
 
 keywords = ["jpeg", "image", "decoder", "encoder"]
 categories = ["compression", "external-ffi-bindings", "multimedia::images"]

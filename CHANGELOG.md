@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 -- 2024-02-03
 
 - Upgrade to TurboJPEG 3.0.1 ([#15](https://github.com/honzasp/rust-turbojpeg/pull/15))
 - Use the new TurboJPEG API (functions starting with `tj3`)

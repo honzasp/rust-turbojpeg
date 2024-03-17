@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 -- 2024-03-17
+
+- Fix the version requirement on `image` dependency to `^0.24`
 
 ## 1.0.0 -- 2024-02-03
 

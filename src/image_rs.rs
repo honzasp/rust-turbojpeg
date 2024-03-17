@@ -86,8 +86,8 @@ pub fn compress_image<P>(
     };
 
     let mut compressor = Compressor::new()?;
-    compressor.set_quality(quality);
-    compressor.set_subsamp(subsamp);
+    compressor.set_quality(quality)?;
+    compressor.set_subsamp(subsamp)?;
     compressor.compress_to_owned(image)
 }
 

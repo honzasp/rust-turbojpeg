@@ -90,23 +90,24 @@
 
 pub extern crate turbojpeg_sys as raw;
 pub extern crate libc;
+#[cfg(feature = "image")]
+pub extern crate image as image;
 
 mod buf;
 mod common;
 mod compress;
 mod decompress;
 mod handle;
-mod image;
+mod image_internal;
 mod transform;
 pub use self::buf::{OwnedBuf, OutputBuf};
 pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
 pub use self::compress::{Compressor, compress, compressed_buf_len};
 pub use self::decompress::{Decompressor, DecompressHeader, decompress, read_header, decompress_to_yuv, yuv_pixels_len};
-pub use self::image::{Image, YuvImage};
+pub use self::image_internal::{Image, YuvImage};
 pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};
 
 #[cfg(feature = "image")]
 mod image_rs;
 #[cfg(feature = "image")]
 pub use self::image_rs::{JpegPixel, compress_image, decompress_image};
-

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 -- 2024-04-07
+
+- Reexport the `image` dependency ([#17](https://github.com/honzasp/rust-turbojpeg/pull/17))
+
 ## 1.0.1 -- 2024-03-17
 
 - Fix the version requirement on `image` dependency to `^0.24`

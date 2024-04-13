@@ -1,5 +1,5 @@
 use std::convert::TryInto as _;
-use crate::{Image, raw};
+use crate::{Image, raw, YuvImage};
 use crate::buf::{OwnedBuf, OutputBuf};
 use crate::common::{Subsamp, Result, Error};
 use crate::handle::Handle;
@@ -174,6 +174,56 @@ impl Compressor {
     pub fn compress_to_slice(&mut self, image: Image<&[u8]>, output: &mut [u8]) -> Result<usize> {
         let mut buf = OutputBuf::borrowed(output);
         self.compress(image, &mut buf)?;
+        Ok(buf.len())
+    }
+
+    pub fn compress_yuv(&mut self, image: YuvImage<&[u8]>, output: &mut OutputBuf) -> Result<()> {
+        image.assert_valid(image.pixels.len());
+        let YuvImage { pixels, width, align, height, subsamp } = image;
+        self.set_subsamp(subsamp)?;
+        let width: libc::c_int = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+        let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
+        let height: libc::c_int = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+
+        self.handle.set(
+            raw::TJPARAM_TJPARAM_NOREALLOC,
+            if output.is_owned { 0 } else { 1 } as libc::c_int,
+        )?;
+
+        let mut output_len = output.len as raw::size_t;
+        let res = unsafe {
+            raw::tj3CompressFromYUV8(
+                self.handle.as_ptr(),
+                pixels.as_ptr(), width, align, height,
+                &mut output.ptr, &mut output_len,
+            )
+        };
+        output.len = output_len as usize;
+        if res != 0 {
+            return Err(self.handle.get_error())
+        } else if output.ptr.is_null() {
+            output.len = 0;
+            return Err(Error::Null)
+        }
+        Ok(())
+    }
+
+    pub fn compress_yuv_to_owned(&mut self, image: YuvImage<&[u8]>) -> Result<OwnedBuf> {
+        let mut buf = OutputBuf::new_owned();
+        self.compress_yuv(image, &mut buf)?;
+        Ok(buf.into_owned())
+    }
+
+    pub fn compress_yuv_to_vec(&mut self, image: YuvImage<&[u8]>) -> Result<Vec<u8>> {
+        let mut buf = OutputBuf::new_owned();
+        self.compress_yuv(image, &mut buf)?;
+        Ok(buf.to_vec())
+    }
+
+
+    pub fn compress_yuv_to_slice(&mut self, image: YuvImage<&[u8]>, output: &mut [u8]) -> Result<usize> {
+        let mut buf = OutputBuf::borrowed(output);
+        self.compress_yuv(image, &mut buf)?;
         Ok(buf.len())
     }
 

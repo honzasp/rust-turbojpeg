@@ -177,6 +177,50 @@ impl Compressor {
         Ok(buf.len())
     }
 
+    /// Compresses a `YuvImage` into `output` buffer.
+    ///
+    /// This is similar to [`compress()`][Self::compress], but when you're working with raw YUV
+    /// data, for instance while using the [libcarmera](https://crates.io/crates/libcamera) library with the raspberry pi. The same
+    /// convenience wrappers are available for the yuv flavor as the standard compress methods
+    ///
+    /// # Example
+    ///
+    /// ```
+    ///
+    /// // parameters from rpi camera v3
+    /// const WIDTH: usize = 1536;
+    /// const HEIGHT: usize = 864;
+    /// const SIZE: usize = WIDTH * HEIGHT * 3 / 2;
+    ///
+    /// // grab a raw yuv image from somewhere
+    /// let mut raw_yuv_pixels: Vec<u8> = vec![0; SIZE];
+    ///
+    /// // initialize the compressor
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    /// compressor.set_quality(70);
+    ///
+    /// // initialize the YuvImage
+    /// //  slice ref to avoid using as_deref
+    /// let yuv_image = turbojpeg::YuvImage{
+    ///     pixels: &raw_yuv_pixels[..],
+    ///     width: WIDTH,
+    ///     align: 4,
+    ///     height: HEIGHT,
+    ///     subsamp: turbojpeg::Subsamp::Sub2x2,
+    ///  };
+    ///
+    /// // initialize the output buffer
+    /// let mut output_buf = turbojpeg::OutputBuf::new_owned();
+    ///
+    /// // compress the image into JPEG
+    /// compressor.compress_yuv(yuv_image, &mut output_buf).unwrap();
+    ///
+    /// // write the JPEG to disk
+    /// std::fs::write(std::env::temp_dir().join("tj_encoded.jpg"), &output_buf)?;
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+
     pub fn compress_yuv(&mut self, image: YuvImage<&[u8]>, output: &mut OutputBuf) -> Result<()> {
         image.assert_valid(image.pixels.len());
         let YuvImage { pixels, width, align, height, subsamp } = image;
@@ -208,11 +252,19 @@ impl Compressor {
         Ok(())
     }
 
+    /// Compresses the `YuvImage` into an owned buffer.
+    ///
+    /// See [`compress_to_owned()`][Self::compress_to_owned]
+
     pub fn compress_yuv_to_owned(&mut self, image: YuvImage<&[u8]>) -> Result<OwnedBuf> {
         let mut buf = OutputBuf::new_owned();
         self.compress_yuv(image, &mut buf)?;
         Ok(buf.into_owned())
     }
+
+    /// Compress the `YuvImage` into a new `Vec<u8>`.
+    ///
+    /// See [`compress_to_vec()`][Self::compress_to_vec]
 
     pub fn compress_yuv_to_vec(&mut self, image: YuvImage<&[u8]>) -> Result<Vec<u8>> {
         let mut buf = OutputBuf::new_owned();
@@ -220,6 +272,9 @@ impl Compressor {
         Ok(buf.to_vec())
     }
 
+    /// Compress the `YuvImage` into the slice `output`.
+    ///
+    /// See [`compress_to_slice()`][Self::compress_to_slice]
 
     pub fn compress_yuv_to_slice(&mut self, image: YuvImage<&[u8]>, output: &mut [u8]) -> Result<usize> {
         let mut buf = OutputBuf::borrowed(output);

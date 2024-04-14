@@ -1,5 +1,6 @@
 use std::ops::{Deref, DerefMut};
-use crate::{common::PixelFormat, Subsamp, yuv_pixels_len};
+use crate::common::{PixelFormat, Subsamp};
+use crate::decompress::yuv_pixels_len;
 
 /// An image with pixels of type `T`.
 ///

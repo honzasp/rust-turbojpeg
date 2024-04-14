@@ -9,10 +9,10 @@ operations for JPEG images:
 
 [libjpeg-turbo]: https://libjpeg-turbo.org/
 
-## Usage with `image-rs`
+## Usage with `image-rs` (version 0.24)
 
-To quickly encode and decode images from the [`image`][image-rs] crate, add this
-to the `[dependencies]` section in your `Cargo.toml`:
+To quickly encode and decode images from the [`image`][image-rs] crate (version
+0.24), add this to the `[dependencies]` section in your `Cargo.toml`:
 
     turbojpeg = {version = "1.0", features = ["image"]}
 

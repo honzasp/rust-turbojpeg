@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 -- 2024-04-14
+
+- Add option for encoding YUV images ([#18](https://github.com/honzasp/rust-turbojpeg/pull/18))
 
 ## 1.0.2 -- 2024-04-07
 

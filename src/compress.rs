@@ -1,5 +1,5 @@
 use std::convert::TryInto as _;
-use crate::{Image, raw, YuvImage};
+use crate::{Image, YuvImage, raw};
 use crate::buf::{OwnedBuf, OutputBuf};
 use crate::common::{Subsamp, Result, Error};
 use crate::handle::Handle;
@@ -148,7 +148,7 @@ impl Compressor {
 
     /// Compresses the `image` into an owned buffer.
     ///
-    /// This method automatically allocates the memory and avoids needless copying.
+    /// This method automatically allocates the memory for output and avoids needless copying.
     pub fn compress_to_owned(&mut self, image: Image<&[u8]>) -> Result<OwnedBuf> {
         let mut buf = OutputBuf::new_owned();
         self.compress(image, &mut buf)?;
@@ -177,11 +177,14 @@ impl Compressor {
         Ok(buf.len())
     }
 
-    /// Compresses a `YuvImage` into `output` buffer.
+    /// Compresses the [`YuvImage`] into `output` buffer.
     ///
-    /// This is similar to [`compress()`][Self::compress], but when you're working with raw YUV
-    /// data, for instance while using the [libcarmera](https://crates.io/crates/libcamera) library with the raspberry pi. The same
-    /// convenience wrappers are available for the yuv flavor as the standard compress methods
+    /// This is similar to [`compress()`][Self::compress], but encodes a YUV image instead of RGB
+    /// image. This method gives you full control of the output buffer. If you don't need this
+    /// level of control, you can use one of the convenience wrappers below.
+    ///
+    /// Encoding YUV images is useful if you already have an image in YUV, for example, if you
+    /// receive it from a camera.
     ///
     /// # Example
     ///
@@ -220,9 +223,10 @@ impl Compressor {
     ///
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-
+    #[doc(alias = "tj3CompressFromYUV8")]
     pub fn compress_yuv(&mut self, image: YuvImage<&[u8]>, output: &mut OutputBuf) -> Result<()> {
         image.assert_valid(image.pixels.len());
+
         let YuvImage { pixels, width, align, height, subsamp } = image;
         self.set_subsamp(subsamp)?;
         let width: libc::c_int = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
@@ -252,10 +256,9 @@ impl Compressor {
         Ok(())
     }
 
-    /// Compresses the `YuvImage` into an owned buffer.
+    /// Compresses the [`YuvImage`] into an owned buffer.
     ///
-    /// See [`compress_to_owned()`][Self::compress_to_owned]
-
+    /// This method automatically allocates the memory for output and avoids needless copying.
     pub fn compress_yuv_to_owned(&mut self, image: YuvImage<&[u8]>) -> Result<OwnedBuf> {
         let mut buf = OutputBuf::new_owned();
         self.compress_yuv(image, &mut buf)?;
@@ -264,8 +267,9 @@ impl Compressor {
 
     /// Compress the `YuvImage` into a new `Vec<u8>`.
     ///
-    /// See [`compress_to_vec()`][Self::compress_to_vec]
-
+    /// This method copies the compressed data into a new `Vec`. If you would like to avoid the
+    /// extra allocation and copying, consider using
+    /// [`compress_yuv_to_owned()`][Self::compress_yuv_to_owned] instead.
     pub fn compress_yuv_to_vec(&mut self, image: YuvImage<&[u8]>) -> Result<Vec<u8>> {
         let mut buf = OutputBuf::new_owned();
         self.compress_yuv(image, &mut buf)?;
@@ -274,8 +278,9 @@ impl Compressor {
 
     /// Compress the `YuvImage` into the slice `output`.
     ///
-    /// See [`compress_to_slice()`][Self::compress_to_slice]
-
+    /// Returns the size of the compressed JPEG data. If the compressed image does not fit into
+    /// `dest`, this method returns an error. Use [`compressed_buf_len()`] to determine buffer size
+    /// that is guaranteed to be large enough for the compressed image.
     pub fn compress_yuv_to_slice(&mut self, image: YuvImage<&[u8]>, output: &mut [u8]) -> Result<usize> {
         let mut buf = OutputBuf::borrowed(output);
         self.compress_yuv(image, &mut buf)?;
@@ -294,7 +299,7 @@ impl Compressor {
     }
 }
 
-/// Compress a JPEG image.
+/// Compress an image to JPEG.
 /// 
 /// Uses the given quality and chrominance subsampling option and returns the JPEG data in a buffer
 /// owned by TurboJPEG. If this function does not fit your needs, please see [`Compressor`].
@@ -319,6 +324,33 @@ pub fn compress(image: Image<&[u8]>, quality: i32, subsamp: Subsamp) -> Result<O
     compressor.set_quality(quality)?;
     compressor.set_subsamp(subsamp)?;
     compressor.compress_to_owned(image)
+}
+
+/// Compress a YUV image to JPEG.
+///
+/// Uses the given quality and returns the JPEG data in a buffer owned by TurboJPEG. If this
+/// function does not fit your needs, please see [`Compressor`].
+///
+/// # Example
+///
+/// ```
+/// // obtain an YUV image
+/// let orig_data = std::fs::read("examples/parrots.jpg")?;
+/// let yuv_image = turbojpeg::decompress_to_yuv(&orig_data)?;
+///
+/// // compress the image into JPEG with quality 90
+/// // (we use as_deref() to convert from &Image<Vec<u8>> to Image<&[u8]>)
+/// let jpeg_data = turbojpeg::compress_yuv(yuv_image.as_deref(), 90)?;
+///
+/// // write the JPEG to disk
+/// std::fs::write(std::env::temp_dir().join("same_parrots.jpg"), &jpeg_data)?;
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn compress_yuv(image: YuvImage<&[u8]>, quality: i32) -> Result<OwnedBuf> {
+    let mut compressor = Compressor::new()?;
+    compressor.set_quality(quality)?;
+    compressor.compress_yuv_to_owned(image)
 }
 
 /// Compute the maximum size of a compressed image.

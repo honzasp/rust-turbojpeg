@@ -8,11 +8,11 @@
 //! - [Decompression into YUV][decompress_to_yuv()]: decode JPEG into YUV (YCbCr), without
 //! performing the color transform into RGB.
 //!
-//! # Integration with image-rs
+//! # Integration with image-rs (version 0.24)
 //! 
-//! To easily encode and decode images from the [`image`][image-rs] crate, please enable the
-//! optional dependency `"image"` of this crate in your `Cargo.toml`. Then you can use the
-//! functions [`decompress_image()`][crate::decompress_image] and
+//! To easily encode and decode images from the [`image`][image-rs] crate (version 0.24), please
+//! enable the optional dependency `"image"` of this crate in your `Cargo.toml`. Then you can use
+//! the functions [`decompress_image()`][crate::decompress_image] and
 //! [`compress_image()`][crate::compress_image]:
 //! 
 //! ```
@@ -30,12 +30,12 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //! 
-//! This crate supports these specializations of [`image::ImageBuffer`][::image::ImageBuffer]:
+//! This crate supports these specializations of [`image::ImageBuffer`]:
 //! 
-//! - [`image::RgbImage`][::image::RgbImage]
-//! - [`image::RgbaImage`][::image::RgbaImage] (JPEG does not support alpha channel, so alpha is
-//!   ignored when encoding and set to 255 when decoding)
-//! - [`image::GrayImage`][::image::GrayImage]
+//! - [`image::RgbImage`]
+//! - [`image::RgbaImage`] (JPEG does not support alpha channel, so alpha is ignored when encoding
+//! and set to 255 when decoding)
+//! - [`image::GrayImage`]
 //! 
 //! [image-rs]: https://docs.rs/image/*/image/index.html
 //!
@@ -58,6 +58,7 @@
 //! - **Read header** of JPEG image to get its size without decompression using
 //! [`Decompressor::read_header()`] or [`read_header()`].
 //! - **Decompress** images **into YUV** using [`decompress_to_yuv()`] or [`Decompressor`].
+//! - **Compress** images **from YUV** using [`compress_yuv()`] or [`Compressor`].
 //! 
 //! # The [`OutputBuf`] and [`OwnedBuf`] types
 //!
@@ -102,7 +103,7 @@ mod image_internal;
 mod transform;
 pub use self::buf::{OwnedBuf, OutputBuf};
 pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
-pub use self::compress::{Compressor, compress, compressed_buf_len};
+pub use self::compress::{Compressor, compress, compress_yuv, compressed_buf_len};
 pub use self::decompress::{Decompressor, DecompressHeader, decompress, read_header, decompress_to_yuv, yuv_pixels_len};
 pub use self::image_internal::{Image, YuvImage};
 pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};

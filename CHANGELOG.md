@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 1.1.1 -- 2024-08-01
 
 - Change `image` dependency to `>= 0.24, < 0.26` to support both 0.24 and 0.25

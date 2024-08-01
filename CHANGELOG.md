@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Change `image` dependency to `>= 0.24, < 0.26` to support both 0.24 and 0.25
+  ([#20](https://github.com/honzasp/rust-turbojpeg/pull/20))
+
 ## 1.1.0 -- 2024-04-14
 
 - Add option for encoding YUV images ([#18](https://github.com/honzasp/rust-turbojpeg/pull/18))

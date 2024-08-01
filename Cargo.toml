@@ -19,14 +19,14 @@ description = "Fast and easy JPEG encoding, decoding and lossless transforms wit
 doctest = true
 
 [dependencies]
-image = {version = "^0.25", optional = true, default-features = false}
+image = {version = ">= 0.24, < 0.26", optional = true, default-features = false}
 libc = "^0.2"
 thiserror = "^1.0"
 turbojpeg-sys = {version = "^1.0.0", default-features = false, path = "./turbojpeg-sys"}
 
 [dev-dependencies]
 anyhow = {version = "1.0"}
-image = {version = "^0.24", features = ["jpeg", "png", "bmp", "farbfeld", "pnm"]}
+image = {version = "^0.24", features = ["jpeg", "png", "bmp", "pnm"]}
 clap = "2.33"
 
 [features]

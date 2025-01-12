@@ -16,7 +16,7 @@ unsafe impl Send for Decompressor {}
 ///
 /// The header can be obtained without decompressing the image by calling
 /// [`Decompressor::read_header()`] or [`read_header()`][crate::read_header].
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct DecompressHeader {
     /// Width of the image in pixels (number of columns).
@@ -24,7 +24,7 @@ pub struct DecompressHeader {
     /// Height of the image in pixels (number of rows).
     pub height: usize,
     /// Chrominance subsampling that is used in the compressed image.
-    pub subsamp: Subsamp,
+    pub subsamp: Result<Subsamp>,
     /// Colorspace of the compressed image.
     pub colorspace: Colorspace,
 }
@@ -69,7 +69,7 @@ impl Decompressor {
             .try_into().map_err(|_| Error::IntegerOverflow("width"))?;
         let height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT)
             .try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-        let subsamp = Subsamp::from_int(self.handle.get(raw::TJPARAM_TJPARAM_SUBSAMP))?;
+        let subsamp = Subsamp::from_int(self.handle.get(raw::TJPARAM_TJPARAM_SUBSAMP));
         let colorspace = Colorspace::from_int(self.handle.get(raw::TJPARAM_TJPARAM_COLORSPACE))?;
         Ok(DecompressHeader { width, height, subsamp, colorspace })
     }
@@ -164,9 +164,10 @@ impl Decompressor {
     ///
     /// // read the JPEG header
     /// let header = decompressor.read_header(&jpeg_data)?;
+    /// let subsamp = header.subsamp?;
     /// // calculate YUV pixels length
     /// let align = 4;
-    /// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, header.subsamp);
+    /// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, subsamp);
     ///
     /// // initialize the image (YuvImage<Vec<u8>>)
     /// let mut image = turbojpeg::YuvImage {
@@ -174,7 +175,7 @@ impl Decompressor {
     ///     width: header.width,
     ///     align,
     ///     height: header.height,
-    ///     subsamp: header.subsamp,
+    ///     subsamp,
     /// };
     ///
     /// // decompress the JPEG into the image
@@ -279,12 +280,13 @@ pub fn decompress(jpeg_data: &[u8], format: PixelFormat) -> Result<Image<Vec<u8>
 pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;
+    let subsamp = header.subsamp?;
     let align = 4;
     let yuv_pixels_len = yuv_pixels_len(
         header.width,
         align,
         header.height,
-        header.subsamp,
+        subsamp,
     )?;
 
     let mut yuv_image = YuvImage {
@@ -292,7 +294,7 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
         width: header.width,
         align,
         height: header.height,
-        subsamp: header.subsamp,
+        subsamp: subsamp,
     };
     decompressor.decompress_to_yuv(jpeg_data, yuv_image.as_deref_mut())?;
 
@@ -317,7 +319,7 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
 /// let header = turbojpeg::read_header(&jpeg_data)?;
 /// // get YUV pixels length
 /// let align = 4;
-/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, header.subsamp);
+/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, header.subsamp?);
 /// assert_eq!(yuv_pixels_len.unwrap(), 294912);
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())

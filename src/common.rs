@@ -373,7 +373,7 @@ impl Colorspace {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// An error that can occur in TurboJPEG.
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
     /// TurboJPEG returned an error message.

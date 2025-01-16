@@ -197,6 +197,18 @@ pub enum Subsamp {
     /// 4:4:1 subsampling is not fully accelerated in libjpeg-turbo.
     #[doc(alias = "TJSAMP_441")]
     Sub1x4 = raw::TJSAMP_TJSAMP_441,
+
+    /// Unknown subsampling.
+    ///
+    /// The JPEG image uses an unusual type of chrominance subsampling. Such images can be
+    /// decompressed into packed-pixel images, but they cannot be
+    ///
+    /// - decompressed into planar YUV images,
+    /// - losslessly transformed if [`Transform::crop`][crate::Transform::crop] is specified and
+    /// [`Transform::gray`][crate::Transform::gray] is not specified, or
+    /// - partially decompressed using a cropping region.
+    #[doc(alias = "TJSAMP_UNKNOWN")]
+    Unknown = raw::TJSAMP_TJSAMP_UNKNOWN,
 }
 
 impl Subsamp {
@@ -208,6 +220,7 @@ impl Subsamp {
             raw::TJSAMP_TJSAMP_GRAY => Self::Gray,
             raw::TJSAMP_TJSAMP_440 => Self::Sub1x2,
             raw::TJSAMP_TJSAMP_411 => Self::Sub4x1,
+            raw::TJSAMP_TJSAMP_UNKNOWN => Self::Unknown,
             other => return Err(Error::BadSubsamp(other)),
         })
     }
@@ -292,6 +305,11 @@ impl Subsamp {
             Self::Sub1x2 => (1, 2),
             Self::Sub4x1 => (4, 1),
             Self::Sub1x4 => (1, 4),
+            // NOTE: `tj3JPEGBufSize()` treats unknown subsampling as `TJSAMP_444` (aka 1x1
+            // subsampling), because "a buffer large enough to hold a JPEG image with no
+            // subsampling should also be large enough to hold a JPEG image with an arbitrary level
+            // of subsampling" (from doc comment to `tj3JPEGBufSize()` in turbojpeg.h).
+            Self::Unknown => (1, 1),
         }
     }
 }

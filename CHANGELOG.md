@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 -- 2025-01-16
+
+- Add `Subsamp::Unknown` to handle unusual chrominance subsampling options
+  ([#23](https://github.com/honzasp/rust-turbojpeg/pull/23))
 
 ## 1.1.1 -- 2024-08-01
 

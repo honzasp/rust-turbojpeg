@@ -220,6 +220,7 @@ impl Subsamp {
             raw::TJSAMP_TJSAMP_GRAY => Self::Gray,
             raw::TJSAMP_TJSAMP_440 => Self::Sub1x2,
             raw::TJSAMP_TJSAMP_411 => Self::Sub4x1,
+            raw::TJSAMP_TJSAMP_441 => Self::Sub1x4,
             raw::TJSAMP_TJSAMP_UNKNOWN => Self::Unknown,
             other => return Err(Error::BadSubsamp(other)),
         })

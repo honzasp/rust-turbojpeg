@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.2.1 -- 2025-01-20
+
+- Fix `Subsamp::from_int()` to handle `TJSAMP_411` ([#24](https://github.com/honzasp/rust-turbojpeg/pull/24))
 
 ## 1.2.0 -- 2025-01-16
 

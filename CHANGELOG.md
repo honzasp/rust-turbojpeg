@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 1.2.2 -- 2025-02-14
 
 - Add `Compressor::set_lossless()` to enable lossless JPEG compression ([#26](https://github.com/honzasp/rust-turbojpeg/pull/26))

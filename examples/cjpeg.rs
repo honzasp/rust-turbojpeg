@@ -9,9 +9,12 @@ fn main() -> Result<()> {
         (about: "Compresses an image to JPEG")
         (@arg INPUT: <input> "Input image file")
         (@arg OUTPUT: <output> "Output JPEG file")
-        (@arg QUALITY: -q --quality <quality> 
+        (@arg QUALITY: -q --quality <quality>
             "Quality of the output JPEG file (1 is worst, 100 is best)")
-    ).get_matches();
+        (@arg LOSSLESS: --lossless
+            "Create lossless JPEG file")
+    )
+    .get_matches();
 
     let image = image::io::Reader::open(args.value_of("INPUT").unwrap())?
         .with_guessed_format()?
@@ -31,6 +34,9 @@ fn main() -> Result<()> {
         compressor.set_quality(quality)?;
     }
 
+    if args.is_present("LOSSLESS") {
+        compressor.set_lossless(true)?;
+    }
     let image_jpeg = compressor.compress_to_owned(Image {
         pixels: image_flat.as_slice(),
         width: extents.1,

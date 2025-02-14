@@ -51,6 +51,13 @@ impl Compressor {
         self.handle.set(raw::TJPARAM_TJPARAM_QUALITY, quality as libc::c_int)
     }
 
+    /// Enable/disable lossless compression.
+    #[doc(alias = "TJPARAM_LOSSLESS")]
+    pub fn set_lossless(&mut self, enabled: bool) -> Result<()> {
+        self.handle
+            .set(raw::TJPARAM_TJPARAM_LOSSLESS, enabled as libc::c_int)
+    }
+
     /// Set the level of chrominance subsampling of the compressed JPEG images.
     ///
     /// Chrominance subsampling can reduce the compressed image size without noticeable loss of

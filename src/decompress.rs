@@ -1,4 +1,5 @@
 use std::convert::TryInto as _;
+use raw::tjscalingfactor;
 use crate::{Image, YuvImage, raw};
 use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
 use crate::handle::Handle;
@@ -8,6 +9,7 @@ use crate::handle::Handle;
 #[doc(alias = "tjhandle")]
 pub struct Decompressor {
     handle: Handle,
+    scaling_factor: ScalingFactor,
 }
 
 unsafe impl Send for Decompressor {}
@@ -29,12 +31,70 @@ pub struct DecompressHeader {
     pub colorspace: Colorspace,
 }
 
+/// Scaling factor for efficient scaling
+///
+/// Turbojpeg gives us the ability to scaling by skipping DCT coefficients
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ScalingFactor {
+    /// No scaling
+    None,
+    /// 1/2 scale resolution
+    OneHalf,
+    /// 1/4 scale resolution
+    OneQuarter,
+    /// 1/8 scale resolution
+    OneEighth
+}
+
+impl Into<tjscalingfactor> for ScalingFactor {
+    fn into(self) -> tjscalingfactor {
+        match self {
+            Self::None => tjscalingfactor { num: 1, denom: 1 },
+            Self::OneHalf => tjscalingfactor { num: 1, denom: 2 },
+            Self::OneQuarter => tjscalingfactor { num: 1, denom: 4 },
+            Self::OneEighth => tjscalingfactor { num: 1, denom: 8 },
+        }
+    }
+}
+
+impl DecompressHeader {
+    /// Convenience method that returns a new instance of the decompress header with the given scale
+    /// # Example
+    ///
+    /// ```
+    /// // read JPEG data from file
+    /// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+    ///
+    /// // read JPEG header to check initial dimensions
+    /// let header = turbojpeg::read_header(&jpeg_data)?;
+    /// assert_eq!((header.width, header.height), (384, 256));
+    ///
+    ///
+    /// // check header size after scale
+    ///
+    /// let scale_factor = turbojpeg::ScalingFactor::OneHalf;
+    /// let scaled_header = header.with_scale(scale_factor);
+    /// assert_eq!((scaled_header.width, scaled_header.height), (192, 128));
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    pub fn with_scale(&self, factor: ScalingFactor) -> Self {
+        let factor: tjscalingfactor = factor.into();
+        Self {
+            width: (self.width + (factor.denom - 1) as usize) / factor.denom as usize,
+            height: (self.height + (factor.denom - 1) as usize) / factor.denom as usize,
+            subsamp: self.subsamp,
+            colorspace: self.colorspace
+        }
+    }
+}
+
 impl Decompressor {
     /// Create a new decompressor instance.
     #[doc(alias = "tj3Init")]
     pub fn new() -> Result<Decompressor> {
         let handle = Handle::new(raw::TJINIT_TJINIT_DECOMPRESS)?;
-        Ok(Self { handle })
+        Ok(Self { handle, scaling_factor: ScalingFactor::None })
     }
 
     /// Read the JPEG header without decompressing the image.
@@ -127,10 +187,10 @@ impl Decompressor {
             return Err(self.handle.get_error())
         }
 
-        let jpeg_width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH);
-        let jpeg_height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT);
-        if width < jpeg_width || height < jpeg_height {
-            return Err(Error::OutputTooSmall(jpeg_width as i32, jpeg_height as i32))
+        let scaled_header = self.read_header(jpeg_data)?.with_scale(self.scaling_factor);
+
+        if width < scaled_header.width as i32 || height < scaled_header.height as i32 {
+            return Err(Error::OutputTooSmall(scaled_header.width as i32, scaled_header.height as i32))
         }
 
         let res = unsafe {
@@ -144,6 +204,50 @@ impl Decompressor {
             return Err(self.handle.get_error())
         }
 
+        Ok(())
+    }
+
+
+    /// Set scaling factor to take effect when decompressing
+    /// Note that this will not work with lossless jpeg images
+    // ///
+    // /// # Example
+    // ///
+    // /// ```
+    // /// // read JPEG data from file
+    // /// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+    // ///
+    // /// // define a scaling
+    // /// let scaling = turbojpeg::ScalingFactor::OneHalf;
+    // ///
+    // /// // initialize a decompressor with the scaling factor
+    // /// let mut decompressor = turbojpeg::Decompressor::new()?;
+    // /// decompressor.set_scaling_factor(scaling);
+    // ///
+    // /// 
+    // ///
+    // /// // read the JPEG header, downscaling the width and height
+    // /// let scaled_header = decompressor.read_header(&jpeg_data)?.with_scale(scaling);
+    // ///
+    // /// // initialize the image (Image<Vec<u8>>)
+    // /// let mut image = turbojpeg::Image {
+    // ///     pixels: vec![0; 4 * scaled_header.width * scaled_header.height],
+    // ///     width: scaled_header.width,
+    // ///     pitch: 4 * scaled_header.width, // size of one image row in memory
+    // ///     height: scaled_header.height,
+    // ///     format: turbojpeg::PixelFormat::RGBA,
+    // /// };
+    // ///
+    // /// // decompress the JPEG into the image
+    // /// // (we use as_deref_mut() to convert from &mut Image<Vec<u8>> into Image<&mut [u8]>)
+    // /// decompressor.decompress_with_scaling(&jpeg_data, image.as_deref_mut(), scaling)?;
+    // /// assert_eq!(&image.pixels[0..5], &[125, 121, 92, 255, 127]);
+    // ///
+    // /// # Ok::<(), Box<dyn std::error::Error>>(())
+    // /// ```
+    pub fn set_scaling_factor(&mut self, scaling_factor: ScalingFactor) -> Result<()> {
+        self.scaling_factor = scaling_factor;
+        self.handle.set_scaling_factor(scaling_factor.into())?;
         Ok(())
     }
 
@@ -194,17 +298,10 @@ impl Decompressor {
         let jpeg_data_len = jpeg_data.len().try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
 
-        let res = unsafe {
-            raw::tj3DecompressHeader(self.handle.as_ptr(), jpeg_data.as_ptr(), jpeg_data_len)
-        };
-        if res != 0 {
-            return Err(self.handle.get_error())
-        }
+        let scaled_header = self.read_header(jpeg_data)?.with_scale(self.scaling_factor);
 
-        let jpeg_width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH);
-        let jpeg_height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT);
-        if width < jpeg_width || height < jpeg_height {
-            return Err(Error::OutputTooSmall(jpeg_width as i32, jpeg_height as i32))
+        if width < scaled_header.width as i32 || height < scaled_header.height as i32 {
+            return Err(Error::OutputTooSmall(scaled_header.width as i32, scaled_header.height as i32))
         }
 
         let res = unsafe {

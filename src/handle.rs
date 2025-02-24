@@ -33,6 +33,14 @@ impl Handle {
         Ok(())
     }
 
+    pub fn set_scaling_factor(&mut self, scaling_factor: turbojpeg_sys::tjscalingfactor) -> Result<()> {
+        let res = unsafe { raw::tj3SetScalingFactor(self.ptr, scaling_factor) };
+        if res != 0 {
+            return Err(self.get_error())
+        }
+        Ok(())
+    }
+
     pub unsafe fn as_ptr(&mut self) -> raw::tjhandle {
         self.ptr
     }

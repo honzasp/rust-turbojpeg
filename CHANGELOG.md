@@ -1,12 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 -- 2025-03-10
 
 - Add scaling during decompression ([#27](https://github.com/honzasp/rust-turbojpeg/pull/27))
   - Add `ScalingFactor`
   - Add `DecompressHeader::scaled()`
   - Add `Decompressor::set_scaling_factor()` and `Decompressor::scaling_factor()`
   - Add `Decompressor::supported_scaling_factors()`
+- Don't pass `DESTDIR` env variable to CMake ([#28](https://github.com/honzasp/rust-turbojpeg/pull/28))
 
 ## 1.2.2 -- 2025-02-14
 

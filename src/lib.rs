@@ -7,6 +7,8 @@
 //! quality.
 //! - [Decompression into YUV][decompress_to_yuv()]: decode JPEG into YUV (YCbCr), without
 //! performing the color transform into RGB.
+//! - [Fractional scaling during decompression][Decompressor::set_scaling_factor()]: save time and
+//! memory by downscaling or upscaling the JPEG image while decoding.
 //!
 //! # Integration with image-rs (version 0.24)
 //! 

@@ -1,5 +1,6 @@
 use std::ffi::CStr;
 use crate::common::{Result, Error};
+use crate::raw;
 
 #[derive(Debug)]
 pub struct Handle {
@@ -33,7 +34,7 @@ impl Handle {
         Ok(())
     }
 
-    pub fn set_scaling_factor(&mut self, scaling_factor: turbojpeg_sys::tjscalingfactor) -> Result<()> {
+    pub fn set_scaling_factor(&mut self, scaling_factor: raw::tjscalingfactor) -> Result<()> {
         let res = unsafe { raw::tj3SetScalingFactor(self.ptr, scaling_factor) };
         if res != 0 {
             return Err(self.get_error())

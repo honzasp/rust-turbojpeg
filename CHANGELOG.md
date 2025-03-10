@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add scaling during decompression ([#27](https://github.com/honzasp/rust-turbojpeg/pull/27))
+  - Add `ScalingFactor`
+  - Add `DecompressHeader::scaled()`
+  - Add `Decompressor::set_scaling_factor()` and `Decompressor::scaling_factor()`
+  - Add `Decompressor::supported_scaling_factors()`
+
 ## 1.2.2 -- 2025-02-14
 
 - Add `Compressor::set_lossless()` to enable lossless JPEG compression ([#26](https://github.com/honzasp/rust-turbojpeg/pull/26))

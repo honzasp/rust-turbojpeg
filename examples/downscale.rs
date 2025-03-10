@@ -8,12 +8,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut decompressor = Decompressor::new()?;
 
     // set the desired downscale factor
-    let scale = ScalingFactor::OneQuarter;
+    let scale = ScalingFactor::new(7, 8);
 
     // read the JPEG header with image size
-    let header = decompressor.read_header(&jpeg_data)?.with_scale(scale);
+    let header = decompressor.read_header(&jpeg_data)?.scaled(scale);
 
-    println!("{},{}", header.width, header.height);
+    println!("{}x{}", header.width, header.height);
 
     // prepare the destination image
     let mut image = Image {
@@ -36,11 +36,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // initialize a Compressor
     let mut compressor = turbojpeg::Compressor::new()?;
 
-    compressor.set_quality(40)?;
+    compressor.set_quality(99)?;
 
     // compress the Image to a Vec<u8> of JPEG data
     let jpeg_data = compressor.compress_to_vec(image.as_deref())?;
 
-    std::fs::write("image-downscaled.jpg", jpeg_data)?;
+    std::fs::write("downscaled.jpg", jpeg_data)?;
     Ok(())
 }

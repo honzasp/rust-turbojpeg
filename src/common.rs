@@ -418,5 +418,10 @@ pub enum Error {
     /// When decompressing, the output image is too small for the input JPEG image.
     #[error("output image is too small for image of size {0}x{1}")]
     OutputTooSmall(i32, i32),
+
+    /// When decompressing a lossless image, a scaling factor was specified, which is not supported
+    /// by TurboJPEG.
+    #[error("lossless JPEG image cannot be scaled during decompression")]
+    CannotScaleLossless,
 }
 

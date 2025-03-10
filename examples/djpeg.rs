@@ -1,5 +1,5 @@
 use std::fs;
-use anyhow::Result;
+use anyhow::{Result, Context as _};
 use clap::clap_app;
 
 use turbojpeg::{Decompressor, Image, PixelFormat};
@@ -9,14 +9,29 @@ fn main() -> Result<()> {
         (about: "Decompresses an image from JPEG")
         (@arg INPUT: <input> "Input JPEG file")
         (@arg OUTPUT: <output> "Output image file")
+        (@arg SCALE: -s --scale [scale] "Apply a scaling factor (such as 7/8)")
     ).get_matches();
 
     let image_jpeg = fs::read(args.value_of("INPUT").unwrap())?;
 
-    let mut decompressor = Decompressor::new()?;
-    let header = decompressor.read_header(&image_jpeg)?;
+    let scaling = match args.value_of("SCALE") {
+        Some(scale) => {
+            let (num, denom) = scale.split_once('/')
+                .context("Wrong syntax of scale")?;
+            let num = num.parse()?;
+            let denom = denom.parse()?;
+            turbojpeg::ScalingFactor::new(num, denom)
+        },
+        None => turbojpeg::ScalingFactor::ONE,
+    };
 
-    let mut image = image::RgbImage::new(header.width as u32, header.height as u32);
+    let mut decompressor = Decompressor::new()?;
+    decompressor.set_scaling_factor(scaling)?;
+
+    let header = decompressor.read_header(&image_jpeg)?;
+    let scaled = header.scaled(scaling);
+
+    let mut image = image::RgbImage::new(scaled.width as u32, scaled.height as u32);
     let mut image_flat = image.as_flat_samples_mut();
     let strides = image_flat.strides_cwh();
     let extents = image_flat.extents();

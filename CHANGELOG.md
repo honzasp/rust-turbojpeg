@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 1.3.0 -- 2025-03-10
 
 - Add scaling during decompression ([#27](https://github.com/honzasp/rust-turbojpeg/pull/27))

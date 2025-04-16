@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.3.1 -- 2025-04-16
+
+- Upgrade libjpeg-turbo to version 3.1.0 ([#29](https://github.com/honzasp/rust-turbojpeg/pull/29))
 
 ## 1.3.0 -- 2025-03-10
 

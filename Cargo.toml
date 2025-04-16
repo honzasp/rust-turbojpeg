@@ -1,6 +1,6 @@
 [package]
 name = "turbojpeg"
-version = "1.3.1-pre"
+version = "1.3.1"
 edition = "2021"
 resolver = "2"
 
@@ -23,7 +23,7 @@ gcd = "2.3.0"
 image = {version = ">= 0.24, < 0.26", optional = true, default-features = false}
 libc = "^0.2"
 thiserror = "^1.0"
-turbojpeg-sys = {version = "^1.0.0", default-features = false, path = "./turbojpeg-sys"}
+turbojpeg-sys = {version = "^1.1.0", default-features = false, path = "./turbojpeg-sys"}
 
 [dev-dependencies]
 anyhow = {version = "1.0"}

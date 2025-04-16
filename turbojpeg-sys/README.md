@@ -30,7 +30,7 @@ compiled library on your system. You can control what we do using
 - `TURBOJPEG_SOURCE=vendor` (**recommended**, default if the `cmake` feature is
     enabled): we build TurboJPEG from source using the [`cmake`][cmake-crate]
     crate and link it to your Rust executable. We use TurboJPEG sources that are
-    bundled with the crate (version 3.0.1).
+    bundled with the crate (version 3.1.0).
 
     This option requires a C compiler, and if you want to compile the SIMD code
     that actually makes TurboJPEG fast, you will also [need NASM or

@@ -22,7 +22,6 @@ exclude = [
     "libjpeg-turbo/change.log",
     "libjpeg-turbo/ChangeLog.md",
     "libjpeg-turbo/coderules.txt",
-    "libjpeg-turbo/doc/",
     "libjpeg-turbo/doxygen*",
 
     "libjpeg-turbo/fuzz/",

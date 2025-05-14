@@ -1,6 +1,6 @@
 [package]
 name = "turbojpeg"
-version = "1.3.3"
+version = "1.3.4-pre"
 edition = "2021"
 resolver = "2"
 

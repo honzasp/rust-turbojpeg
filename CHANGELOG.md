@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 1.3.3 -- 2025-05-14
 
 - Include `Cargo.lock` in git, because it's included in the package published to

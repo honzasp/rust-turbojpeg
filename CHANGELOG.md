@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.3.3 -- 2025-05-14
+
+- Include `Cargo.lock` in git, because it's included in the package published to
+  crates.io and used on docs.rs ([#32](https://github.com/honzasp/rust-turbojpeg/issues/32))
 
 ## 1.3.2 -- 2025-04-18
 

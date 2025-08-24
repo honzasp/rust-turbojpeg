@@ -153,6 +153,35 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
         cmake.configure_arg("-DREQUIRE_SIMD=ON");
     }
 
+    let is_msvc = env("CARGO_CFG_TARGET_ENV").unwrap() == "msvc";
+
+    #[cfg(target_os = "windows")] {
+        // add missing msvc-specific flags
+        if is_msvc {
+            let opt_level = env("OPT_LEVEL")
+                .map(|s| s
+                    .to_string_lossy()
+                    .chars()
+                    .nth(0)
+                    .unwrap()
+                )
+                .unwrap();
+
+            let compiler_flags: &[&str] = match opt_level {
+                's' => &["/O1", "/Ob1"], // min size + no opt + min inlining
+                'z' => &["/O1", "/Ob0"], // min size + no opt + no inlining
+                '1' | '2' => &["/O1"],   // min opt
+                '3' => &["/O2", "/Ob3"], // max opt + max inlining
+                '0' => &["/Od"], // no opt
+                _ => panic!("unknown optimization level: '{opt_level}'")
+            };
+
+            for flag in compiler_flags {
+                cmake.cflag(flag);
+            }
+        }
+    }
+
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     if target_os == "android" {
         let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
@@ -170,8 +199,6 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
 
     let lib_path = dst_path.join("lib");
     let include_path = dst_path.join("include");
-
-    let is_msvc = env("CARGO_CFG_TARGET_ENV").unwrap() == "msvc";
 
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     println!("cargo:rustc-link-lib={}=turbojpeg{}", match link_kind {

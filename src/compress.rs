@@ -1,5 +1,5 @@
 use std::convert::TryInto as _;
-use crate::{Image, YuvImage, raw};
+use crate::{Image, YuvImage, YuvPlanesImage, raw};
 use crate::buf::{OwnedBuf, OutputBuf};
 use crate::common::{Subsamp, Result, Error};
 use crate::handle::Handle;
@@ -293,6 +293,145 @@ impl Compressor {
         self.compress_yuv(image, &mut buf)?;
         Ok(buf.len())
     }
+
+    /// Compress separate YUV planes into JPEG.
+    ///
+    /// This function compresses separate Y, U (Cb), and V (Cr) image planes into 
+    /// a JPEG image. This is similar to [`compress_yuv()`][Self::compress_yuv], 
+    /// but takes separate YUV planes as input instead of interleaved YUV data.
+    ///
+    /// # Arguments
+    ///
+    /// * `yuv_planes` - YUV image with separate planes
+    /// * `output` - Output buffer for compressed JPEG data
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // prepare YUV plane data
+    /// let width = 640;
+    /// let height = 480;
+    /// let y_plane = vec![128u8; width * height];
+    /// let u_plane = vec![128u8; (width/2) * (height/2)];
+    /// let v_plane = vec![128u8; (width/2) * (height/2)];
+    ///
+    /// let yuv_planes = turbojpeg::YuvPlanesImage {
+    ///     y_plane: &y_plane[..],
+    ///     u_plane: &u_plane[..],
+    ///     v_plane: &v_plane[..],
+    ///     width,
+    ///     height,
+    ///     y_stride: width,
+    ///     u_stride: width/2,
+    ///     v_stride: width/2,
+    ///     subsamp: turbojpeg::Subsamp::Sub2x2,
+    /// };
+    ///
+    /// // initialize the compressor
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    /// compressor.set_quality(90)?;
+    ///
+    /// // initialize the output buffer
+    /// let mut output_buf = turbojpeg::OutputBuf::new_owned();
+    ///
+    /// // compress YUV planes to JPEG
+    /// compressor.compress_yuv_planes(&yuv_planes, &mut output_buf)?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    #[doc(alias = "tj3CompressFromYUVPlanes8")]
+    pub fn compress_yuv_planes(
+        &mut self,
+        yuv_planes: &YuvPlanesImage<&[u8]>,
+        output: &mut OutputBuf,
+    ) -> Result<()> {
+        let width = yuv_planes.width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+        let height = yuv_planes.height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+
+        let planes = [
+            yuv_planes.y_plane.as_ptr(),
+            yuv_planes.u_plane.as_ptr(),
+            yuv_planes.v_plane.as_ptr(),
+        ];
+
+        let strides = [
+            yuv_planes.y_stride.try_into().map_err(|_| Error::IntegerOverflow("y_stride"))?,
+            yuv_planes.u_stride.try_into().map_err(|_| Error::IntegerOverflow("u_stride"))?,
+            yuv_planes.v_stride.try_into().map_err(|_| Error::IntegerOverflow("v_stride"))?,
+        ];
+        
+        // Set subsampling from the YuvPlanesImage structure
+        self.set_subsamp(yuv_planes.subsamp)?;
+
+        self.handle.set(
+            raw::TJPARAM_TJPARAM_NOREALLOC,
+            if output.is_owned { 0 } else { 1 } as libc::c_int,
+        )?;
+
+        let mut output_len = output.len as raw::size_t;
+        let result = unsafe {
+            raw::tj3CompressFromYUVPlanes8(
+                self.handle.as_ptr(),
+                planes.as_ptr(),
+                width,
+                strides.as_ptr(),
+                height,
+                &mut output.ptr,
+                &mut output_len,
+            )
+        };
+        output.len = output_len as usize;
+
+        if result != 0 {
+            return Err(self.handle.get_error());
+        } else if output.ptr.is_null() {
+            output.len = 0;
+            return Err(Error::Null);
+        }
+
+        Ok(())
+    }
+
+    /// Compress separate YUV planes into an owned buffer.
+    ///
+    /// This method automatically allocates the memory for output and avoids needless copying.
+    pub fn compress_yuv_planes_to_owned(
+        &mut self,
+        yuv_planes: &YuvPlanesImage<&[u8]>,
+    ) -> Result<OwnedBuf> {
+        let mut buf = OutputBuf::new_owned();
+        self.compress_yuv_planes(yuv_planes, &mut buf)?;
+        Ok(buf.into_owned())
+    }
+
+    /// Compress separate YUV planes into a new `Vec<u8>`.
+    ///
+    /// This method copies the compressed data into a new `Vec`. If you would like to avoid the
+    /// extra allocation and copying, consider using
+    /// [`compress_yuv_planes_to_owned()`][Self::compress_yuv_planes_to_owned] instead.
+    pub fn compress_yuv_planes_to_vec(
+        &mut self,
+        yuv_planes: &YuvPlanesImage<&[u8]>,
+    ) -> Result<Vec<u8>> {
+        let mut buf = OutputBuf::new_owned();
+        self.compress_yuv_planes(yuv_planes, &mut buf)?;
+        Ok(buf.to_vec())
+    }
+
+    /// Compress separate YUV planes into the slice `output`.
+    ///
+    /// Returns the size of the compressed JPEG data. If the compressed image does not fit into
+    /// `dest`, this method returns an error. Use [`compressed_buf_len()`] to determine buffer size
+    /// that is guaranteed to be large enough for the compressed image.
+    pub fn compress_yuv_planes_to_slice(
+        &mut self,
+        yuv_planes: &YuvPlanesImage<&[u8]>,
+        output: &mut [u8],
+    ) -> Result<usize> {
+        let mut buf = OutputBuf::borrowed(output);
+        self.compress_yuv_planes(yuv_planes, &mut buf)?;
+        Ok(buf.len())
+    }
+
 
     /// Compute the maximum size of a compressed image.
     ///

@@ -2,6 +2,56 @@ use std::ops::{Deref, DerefMut};
 use crate::common::{PixelFormat, Subsamp};
 use crate::decompress::yuv_pixels_len;
 
+/// A YUV (YCbCr) image with separate planes.
+///
+/// This type stores an image in the JPEG color transform YCbCr (also called "YUV") with separate
+/// Y, U (Cb), and V (Cr) planes, as opposed to interleaved YUV data like [`YuvImage`].
+///
+/// Each plane has its own data and stride for maximum flexibility.
+///
+/// Two variants of this type are commonly used:
+///
+/// - `YuvPlanesImage<&[u8]>`: immutable reference to YUV plane data (input for compression)
+/// - `YuvPlanesImage<Vec<u8>>`: owned YUV plane data
+#[derive(Debug, Copy, Clone)]
+pub struct YuvPlanesImage<T> {
+    /// Y (luminance) plane data.
+    pub y_plane: T,
+    /// U (chrominance) plane data.
+    pub u_plane: T,
+    /// V (chrominance) plane data.
+    pub v_plane: T,
+    /// Width of the image in pixels (number of columns).
+    pub width: usize,
+    /// Height of the image in pixels (number of rows).
+    pub height: usize,
+    /// Y plane stride (bytes per row).
+    pub y_stride: usize,
+    /// U plane stride (bytes per row).
+    pub u_stride: usize,
+    /// V plane stride (bytes per row).
+    pub v_stride: usize,
+    /// The level of chrominance subsampling used in the YUV image.
+    pub subsamp: Subsamp,
+}
+
+impl<T> YuvPlanesImage<T> {
+    /// Converts from `&YuvPlanesImage<T>` to `YuvPlanesImage<&T::Target>`.
+    pub fn as_deref(&self) -> YuvPlanesImage<&T::Target> where T: Deref {
+        YuvPlanesImage {
+            y_plane: self.y_plane.deref(),
+            u_plane: self.u_plane.deref(),
+            v_plane: self.v_plane.deref(),
+            width: self.width,
+            height: self.height,
+            y_stride: self.y_stride,
+            u_stride: self.u_stride,
+            v_stride: self.v_stride,
+            subsamp: self.subsamp,
+        }
+    }
+}
+
 /// An image with pixels of type `T`.
 ///
 /// Three variants of this type are commonly used:

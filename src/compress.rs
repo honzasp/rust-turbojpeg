@@ -499,6 +499,47 @@ pub fn compress_yuv(image: YuvImage<&[u8]>, quality: i32) -> Result<OwnedBuf> {
     compressor.compress_yuv_to_owned(image)
 }
 
+/// Compress separate YUV planes to JPEG.
+///
+/// Uses the given quality and returns the JPEG data in a buffer owned by TurboJPEG. If this
+/// function does not fit your needs, please see [`Compressor`].
+///
+/// # Example
+///
+/// ```
+/// // prepare YUV plane data
+/// let width = 640;
+/// let height = 480;
+/// let y_plane = vec![128u8; width * height];
+/// let u_plane = vec![128u8; (width/2) * (height/2)];
+/// let v_plane = vec![128u8; (width/2) * (height/2)];
+///
+/// let yuv_planes = turbojpeg::YuvPlanesImage {
+///     y_plane: &y_plane[..],
+///     u_plane: &u_plane[..],
+///     v_plane: &v_plane[..],
+///     width,
+///     height,
+///     y_stride: width,
+///     u_stride: width/2,
+///     v_stride: width/2,
+///     subsamp: turbojpeg::Subsamp::Sub2x2,
+/// };
+///
+/// // compress the YUV planes into JPEG with quality 90
+/// let jpeg_data = turbojpeg::compress_yuv_planes(&yuv_planes, 90)?;
+///
+/// // write the JPEG to disk
+/// std::fs::write(std::env::temp_dir().join("yuv_planes.jpg"), &jpeg_data)?;
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn compress_yuv_planes(yuv_planes: &YuvPlanesImage<&[u8]>, quality: i32) -> Result<OwnedBuf> {
+    let mut compressor = Compressor::new()?;
+    compressor.set_quality(quality)?;
+    compressor.compress_yuv_planes_to_owned(yuv_planes)
+}
+
 /// Compute the maximum size of a compressed image.
 ///
 /// This depends on image `width` and `height` and also on the chrominance subsampling method.

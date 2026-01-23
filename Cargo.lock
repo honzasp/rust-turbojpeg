@@ -602,7 +602,7 @@ dependencies = [
 
 [[package]]
 name = "turbojpeg"
-version = "1.3.3"
+version = "1.3.4-pre"
 dependencies = [
  "anyhow",
  "clap",

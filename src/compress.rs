@@ -62,6 +62,9 @@ impl Compressor {
     ///
     /// Chrominance subsampling can reduce the compressed image size without noticeable loss of
     /// quality (see [`Subsamp`] for more).
+    ///
+    /// When compressing YUV images, the level of chrominance subsampling is set from the image,
+    /// and the value set by this method is overriden.
     #[doc(alias = "TJPARAM_SUBSAMP")]
     pub fn set_subsamp(&mut self, subsamp: Subsamp) -> Result<()> {
         self.handle.set(raw::TJPARAM_TJPARAM_SUBSAMP, subsamp as i32 as libc::c_int)
@@ -302,7 +305,7 @@ impl Compressor {
     ///
     /// # Arguments
     ///
-    /// * `yuv_planes` - YUV image with separate planes
+    /// * `image` - YUV image with separate planes
     /// * `output` - Output buffer for compressed JPEG data
     ///
     /// # Example
@@ -315,7 +318,7 @@ impl Compressor {
     /// let u_plane = vec![128u8; (width/2) * (height/2)];
     /// let v_plane = vec![128u8; (width/2) * (height/2)];
     ///
-    /// let yuv_planes = turbojpeg::YuvPlanesImage {
+    /// let image = turbojpeg::YuvPlanesImage {
     ///     y_plane: &y_plane[..],
     ///     u_plane: &u_plane[..],
     ///     v_plane: &v_plane[..],
@@ -335,32 +338,33 @@ impl Compressor {
     /// let mut output_buf = turbojpeg::OutputBuf::new_owned();
     ///
     /// // compress YUV planes to JPEG
-    /// compressor.compress_yuv_planes(&yuv_planes, &mut output_buf)?;
+    /// compressor.compress_yuv_planes(&image, &mut output_buf)?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[doc(alias = "tj3CompressFromYUVPlanes8")]
     pub fn compress_yuv_planes(
         &mut self,
-        yuv_planes: &YuvPlanesImage<&[u8]>,
+        image: &YuvPlanesImage<&[u8]>,
         output: &mut OutputBuf,
     ) -> Result<()> {
-        let width = yuv_planes.width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let height = yuv_planes.height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+        image.assert_valid(image.y_plane.len(), image.u_plane.len(), image.v_plane.len());
+        let width = image.width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+        let height = image.height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
 
         let planes = [
-            yuv_planes.y_plane.as_ptr(),
-            yuv_planes.u_plane.as_ptr(),
-            yuv_planes.v_plane.as_ptr(),
+            image.y_plane.as_ptr(),
+            image.u_plane.as_ptr(),
+            image.v_plane.as_ptr(),
         ];
 
         let strides = [
-            yuv_planes.y_stride.try_into().map_err(|_| Error::IntegerOverflow("y_stride"))?,
-            yuv_planes.u_stride.try_into().map_err(|_| Error::IntegerOverflow("u_stride"))?,
-            yuv_planes.v_stride.try_into().map_err(|_| Error::IntegerOverflow("v_stride"))?,
+            image.y_stride.try_into().map_err(|_| Error::IntegerOverflow("y_stride"))?,
+            image.u_stride.try_into().map_err(|_| Error::IntegerOverflow("u_stride"))?,
+            image.v_stride.try_into().map_err(|_| Error::IntegerOverflow("v_stride"))?,
         ];
         
         // Set subsampling from the YuvPlanesImage structure
-        self.set_subsamp(yuv_planes.subsamp)?;
+        self.set_subsamp(image.subsamp)?;
 
         self.handle.set(
             raw::TJPARAM_TJPARAM_NOREALLOC,
@@ -396,10 +400,10 @@ impl Compressor {
     /// This method automatically allocates the memory for output and avoids needless copying.
     pub fn compress_yuv_planes_to_owned(
         &mut self,
-        yuv_planes: &YuvPlanesImage<&[u8]>,
+        image: &YuvPlanesImage<&[u8]>,
     ) -> Result<OwnedBuf> {
         let mut buf = OutputBuf::new_owned();
-        self.compress_yuv_planes(yuv_planes, &mut buf)?;
+        self.compress_yuv_planes(image, &mut buf)?;
         Ok(buf.into_owned())
     }
 
@@ -410,10 +414,10 @@ impl Compressor {
     /// [`compress_yuv_planes_to_owned()`][Self::compress_yuv_planes_to_owned] instead.
     pub fn compress_yuv_planes_to_vec(
         &mut self,
-        yuv_planes: &YuvPlanesImage<&[u8]>,
+        image: &YuvPlanesImage<&[u8]>,
     ) -> Result<Vec<u8>> {
         let mut buf = OutputBuf::new_owned();
-        self.compress_yuv_planes(yuv_planes, &mut buf)?;
+        self.compress_yuv_planes(image, &mut buf)?;
         Ok(buf.to_vec())
     }
 
@@ -424,11 +428,11 @@ impl Compressor {
     /// that is guaranteed to be large enough for the compressed image.
     pub fn compress_yuv_planes_to_slice(
         &mut self,
-        yuv_planes: &YuvPlanesImage<&[u8]>,
+        image: &YuvPlanesImage<&[u8]>,
         output: &mut [u8],
     ) -> Result<usize> {
         let mut buf = OutputBuf::borrowed(output);
-        self.compress_yuv_planes(yuv_planes, &mut buf)?;
+        self.compress_yuv_planes(image, &mut buf)?;
         Ok(buf.len())
     }
 
@@ -514,7 +518,7 @@ pub fn compress_yuv(image: YuvImage<&[u8]>, quality: i32) -> Result<OwnedBuf> {
 /// let u_plane = vec![128u8; (width/2) * (height/2)];
 /// let v_plane = vec![128u8; (width/2) * (height/2)];
 ///
-/// let yuv_planes = turbojpeg::YuvPlanesImage {
+/// let image = turbojpeg::YuvPlanesImage {
 ///     y_plane: &y_plane[..],
 ///     u_plane: &u_plane[..],
 ///     v_plane: &v_plane[..],
@@ -527,17 +531,17 @@ pub fn compress_yuv(image: YuvImage<&[u8]>, quality: i32) -> Result<OwnedBuf> {
 /// };
 ///
 /// // compress the YUV planes into JPEG with quality 90
-/// let jpeg_data = turbojpeg::compress_yuv_planes(&yuv_planes, 90)?;
+/// let jpeg_data = turbojpeg::compress_yuv_planes(&image, 90)?;
 ///
 /// // write the JPEG to disk
 /// std::fs::write(std::env::temp_dir().join("yuv_planes.jpg"), &jpeg_data)?;
 ///
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn compress_yuv_planes(yuv_planes: &YuvPlanesImage<&[u8]>, quality: i32) -> Result<OwnedBuf> {
+pub fn compress_yuv_planes(image: &YuvPlanesImage<&[u8]>, quality: i32) -> Result<OwnedBuf> {
     let mut compressor = Compressor::new()?;
     compressor.set_quality(quality)?;
-    compressor.compress_yuv_planes_to_owned(yuv_planes)
+    compressor.compress_yuv_planes_to_owned(image)
 }
 
 /// Compute the maximum size of a compressed image.

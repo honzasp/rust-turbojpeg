@@ -423,5 +423,9 @@ pub enum Error {
     /// by TurboJPEG.
     #[error("lossless JPEG image cannot be scaled during decompression")]
     CannotScaleLossless,
+
+    /// Arguments to a TurboJPEG function were out of bounds.
+    #[error("arguments to a TurboJPEG function were out of bounds")]
+    OutOfBounds,
 }
 

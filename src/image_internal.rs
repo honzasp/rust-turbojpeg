@@ -1,56 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use crate::common::{PixelFormat, Subsamp};
-use crate::decompress::yuv_pixels_len;
-
-/// A YUV (YCbCr) image with separate planes.
-///
-/// This type stores an image in the JPEG color transform YCbCr (also called "YUV") with separate
-/// Y, U (Cb), and V (Cr) planes, as opposed to interleaved YUV data like [`YuvImage`].
-///
-/// Each plane has its own data and stride for maximum flexibility.
-///
-/// Two variants of this type are commonly used:
-///
-/// - `YuvPlanesImage<&[u8]>`: immutable reference to YUV plane data (input for compression)
-/// - `YuvPlanesImage<Vec<u8>>`: owned YUV plane data
-#[derive(Debug, Copy, Clone)]
-pub struct YuvPlanesImage<T> {
-    /// Y (luminance) plane data.
-    pub y_plane: T,
-    /// U (chrominance) plane data.
-    pub u_plane: T,
-    /// V (chrominance) plane data.
-    pub v_plane: T,
-    /// Width of the image in pixels (number of columns).
-    pub width: usize,
-    /// Height of the image in pixels (number of rows).
-    pub height: usize,
-    /// Y plane stride (bytes per row).
-    pub y_stride: usize,
-    /// U plane stride (bytes per row).
-    pub u_stride: usize,
-    /// V plane stride (bytes per row).
-    pub v_stride: usize,
-    /// The level of chrominance subsampling used in the YUV image.
-    pub subsamp: Subsamp,
-}
-
-impl<T> YuvPlanesImage<T> {
-    /// Converts from `&YuvPlanesImage<T>` to `YuvPlanesImage<&T::Target>`.
-    pub fn as_deref(&self) -> YuvPlanesImage<&T::Target> where T: Deref {
-        YuvPlanesImage {
-            y_plane: self.y_plane.deref(),
-            u_plane: self.u_plane.deref(),
-            v_plane: self.v_plane.deref(),
-            width: self.width,
-            height: self.height,
-            y_stride: self.y_stride,
-            u_stride: self.u_stride,
-            v_stride: self.v_stride,
-            subsamp: self.subsamp,
-        }
-    }
-}
+use crate::common::{PixelFormat, Subsamp, Result, Error};
 
 /// An image with pixels of type `T`.
 ///
@@ -359,6 +308,179 @@ impl<T> YuvImage<T> {
         assert!(min_yuv_pixels_len <= pixels_len,
             "YUV pixels length {} is too small for width {}, height {}, align {} and subsamp {:?}",
             pixels_len, width, height, align, subsamp);
+    }
+}
+
+/// Determine size in bytes of a YUV image.
+///
+/// Calculates the size for [`YuvImage::pixels`] based on the image width, height, chrominance
+/// subsampling and row alignment.
+///
+/// Returns an error on integer overflow. You can just `.unwrap()` the result if you don't care
+/// about this edge case.
+/// 
+/// # Example
+///
+/// ```
+/// // read JPEG data from file
+/// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+///
+/// // read the JPEG header
+/// let header = turbojpeg::read_header(&jpeg_data)?;
+/// // get YUV pixels length
+/// let align = 4;
+/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, header.subsamp);
+/// assert_eq!(yuv_pixels_len.unwrap(), 294912);
+///
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+#[doc(alias = "tj3YUVBufSize")]
+pub fn yuv_pixels_len(width: usize, align: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
+    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+    let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
+    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+    let len = unsafe { raw::tj3YUVBufSize(width, align, height, subsamp as libc::c_int) };
+    match len.try_into() {
+        Ok(0) => Err(Error::OutOfBounds),
+        Ok(len) => Ok(len),
+        Err(_) => Err(Error::IntegerOverflow("yuv size")),
+    }
+}
+
+
+/// A YUV (YCbCr) image with separate planes.
+///
+/// This type stores an image in the JPEG color transform YCbCr (also called "YUV") with separate
+/// Y, U (Cb), and V (Cr) planes, as opposed to interleaved YUV data like [`YuvImage`].
+///
+/// Each plane has its own data and stride for maximum flexibility.
+///
+/// Two variants of this type are commonly used:
+///
+/// - `YuvPlanesImage<&[u8]>`: immutable reference to YUV plane data (input for compression)
+/// - `YuvPlanesImage<Vec<u8>>`: owned YUV plane data
+#[derive(Debug, Copy, Clone)]
+pub struct YuvPlanesImage<T> {
+    /// Y (luminance) plane data.
+    pub y_plane: T,
+    /// U (chrominance) plane data.
+    pub u_plane: T,
+    /// V (chrominance) plane data.
+    pub v_plane: T,
+    /// Width of the image in pixels (number of columns).
+    pub width: usize,
+    /// Height of the image in pixels (number of rows).
+    pub height: usize,
+    /// Y plane stride (bytes per row).
+    pub y_stride: usize,
+    /// U plane stride (bytes per row).
+    pub u_stride: usize,
+    /// V plane stride (bytes per row).
+    pub v_stride: usize,
+    /// The level of chrominance subsampling used in the YUV image.
+    pub subsamp: Subsamp,
+}
+
+impl<T> YuvPlanesImage<T> {
+    /// Converts from `&YuvPlanesImage<T>` to `YuvPlanesImage<&T::Target>`.
+    pub fn as_deref(&self) -> YuvPlanesImage<&T::Target> where T: Deref {
+        YuvPlanesImage {
+            y_plane: self.y_plane.deref(),
+            u_plane: self.u_plane.deref(),
+            v_plane: self.v_plane.deref(),
+            width: self.width,
+            height: self.height,
+            y_stride: self.y_stride,
+            u_stride: self.u_stride,
+            v_stride: self.v_stride,
+            subsamp: self.subsamp,
+        }
+    }
+
+    /// Get a reference to a component plane.
+    pub fn plane(&self, component: YuvComponent) -> &T {
+        match component {
+            YuvComponent::Y => &self.y_plane,
+            YuvComponent::U => &self.u_plane,
+            YuvComponent::V => &self.v_plane,
+        }
+    }
+
+    /// Get a mutable reference to a component plane.
+    pub fn plane_mut(&mut self, component: YuvComponent) -> &mut T {
+        match component {
+            YuvComponent::Y => &mut self.y_plane,
+            YuvComponent::U => &mut self.u_plane,
+            YuvComponent::V => &mut self.v_plane,
+        }
+    }
+
+    /// Get the stride (bytes per row) of a component plane.
+    pub fn stride(&self, component: YuvComponent) -> usize {
+        match component {
+            YuvComponent::Y => self.y_stride,
+            YuvComponent::U => self.u_stride,
+            YuvComponent::V => self.v_stride,
+        }
+    }
+
+    pub(crate) fn assert_valid(&self, y_len: usize, u_len: usize, v_len: usize) {
+        let YuvPlanesImage { width, height, y_stride, u_stride, v_stride, subsamp, .. } = *self;
+
+        let min_y_plane_len = yuv_plane_len(YuvComponent::Y, width, y_stride, height, subsamp).unwrap();
+        assert!(min_y_plane_len <= y_len,
+            "Y plane length {} is too small for width {}, height {}, stride {} and subsamp {:?}",
+            y_len, width, height, y_stride, subsamp);
+
+        let min_u_plane_len = yuv_plane_len(YuvComponent::U, width, u_stride, height, subsamp).unwrap();
+        assert!(min_u_plane_len <= u_len,
+            "U plane length {} is too small for width {}, height {}, stride {} and subsamp {:?}",
+            u_len, width, height, u_stride, subsamp);
+
+        let min_v_plane_len = yuv_plane_len(YuvComponent::V, width, v_stride, height, subsamp).unwrap();
+        assert!(min_v_plane_len <= v_len,
+            "V plane length {} is too small for width {}, height {}, stride {} and subsamp {:?}",
+            v_len, width, height, v_stride, subsamp);
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(i32)]
+pub enum YuvComponent {
+    Y = 0,
+    U = 1,
+    V = 2,
+}
+
+/// Determine size in bytes of a YUV plane.
+///
+/// Calculates the size for a plane in [`YuvPlanesImage`] based on the image width, height and
+/// chrominance subsampling.
+///
+/// Returns an error on integer overflow. You can just `.unwrap()` the result if you don't care
+/// about this edge case.
+#[doc(alias = "tj3YUVPlaneSize")]
+pub fn yuv_plane_len(
+    component: YuvComponent,
+    width: usize,
+    stride: usize,
+    height: usize,
+    subsamp: Subsamp,
+) -> Result<usize> {
+    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+    let stride = stride.try_into().map_err(|_| Error::IntegerOverflow("stride"))?;
+    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+    let len = unsafe {
+        raw::tj3YUVPlaneSize(
+            component as libc::c_int,
+            width, stride, height,
+            subsamp as libc::c_int,
+        )
+    };
+    match len.try_into() {
+        Ok(0) => Err(Error::OutOfBounds),
+        Ok(len) => Ok(len),
+        Err(_) => Err(Error::IntegerOverflow("yuv plane size")),
     }
 }
 

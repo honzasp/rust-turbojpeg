@@ -106,8 +106,8 @@ mod transform;
 pub use self::buf::{OwnedBuf, OutputBuf};
 pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
 pub use self::compress::{Compressor, compress, compress_yuv, compress_yuv_planes, compressed_buf_len};
-pub use self::decompress::{Decompressor, DecompressHeader, ScalingFactor, decompress, read_header, decompress_to_yuv, yuv_pixels_len};
-pub use self::image_internal::{Image, YuvImage, YuvPlanesImage};
+pub use self::decompress::{Decompressor, DecompressHeader, ScalingFactor, decompress, read_header, decompress_to_yuv};
+pub use self::image_internal::{Image, YuvImage, YuvPlanesImage, yuv_pixels_len, yuv_plane_len};
 pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};
 
 #[cfg(feature = "image")]

@@ -3,6 +3,7 @@ use std::fmt;
 use crate::{Image, YuvImage, raw};
 use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
 use crate::handle::Handle;
+use crate::image_internal::yuv_pixels_len;
 
 /// Decompresses JPEG data into raw pixels.
 #[derive(Debug)]
@@ -483,39 +484,6 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     decompressor.decompress_to_yuv(jpeg_data, yuv_image.as_deref_mut())?;
 
     Ok(yuv_image)
-}
-
-/// Determine size in bytes of a YUV image.
-///
-/// Calculates the size for [`YuvImage::pixels`] based on the image width, height, chrominance
-/// subsampling and row alignment.
-///
-/// Returns an error on integer overflow. You can just `.unwrap()` the result if you don't care
-/// about this edge case.
-/// 
-/// # Example
-///
-/// ```
-/// // read JPEG data from file
-/// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
-///
-/// // read the JPEG header
-/// let header = turbojpeg::read_header(&jpeg_data)?;
-/// // get YUV pixels length
-/// let align = 4;
-/// let yuv_pixels_len = turbojpeg::yuv_pixels_len(header.width, align, header.height, header.subsamp);
-/// assert_eq!(yuv_pixels_len.unwrap(), 294912);
-///
-/// # Ok::<(), Box<dyn std::error::Error>>(())
-/// ```
-#[doc(alias = "tj3YUVBufSize")]
-pub fn yuv_pixels_len(width: usize, align: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
-    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-    let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
-    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-    let len = unsafe { raw::tj3YUVBufSize(width, align, height, subsamp as libc::c_int) };
-    let len = len.try_into().map_err(|_| Error::IntegerOverflow("yuv size"))?;
-    Ok(len)
 }
 
 /// Read the JPEG header without decompressing the image.

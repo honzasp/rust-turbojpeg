@@ -5,6 +5,8 @@
 //! - [Lossless transformations][transform()]: apply basic geometric transformations (rotate, mirror,
 //! ...) without going through decompression and compression, so that the image does not lose
 //! quality.
+//! - [Compression from YUV][compress_yuv()]: encode JPEG from YUV, both in pixel format and in
+//! [planar format][compress_yuv_planes()].
 //! - [Decompression into YUV][decompress_to_yuv()]: decode JPEG into YUV (YCbCr), without
 //! performing the color transform into RGB.
 //! - [Fractional scaling during decompression][Decompressor::set_scaling_factor()]: save time and

@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.4.0 -- 2026-01-23
+
+- Add compression from YUV plane images ([#36](https://github.com/honzasp/rust-turbojpeg/pull/36))
 
 ## 1.3.3 -- 2025-05-14
 

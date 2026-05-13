@@ -173,6 +173,7 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
 
     let is_msvc = env("CARGO_CFG_TARGET_ENV").unwrap() == "msvc";
 
+    println!("cargo:include={}", include_path.display());
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     println!("cargo:rustc-link-lib={}=turbojpeg{}", match link_kind {
         LinkKind::Static | LinkKind::Default => "static",

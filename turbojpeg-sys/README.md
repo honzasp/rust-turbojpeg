@@ -99,3 +99,13 @@ This crate supports multiple features:
 - `bindgen`: allows us to generate the bindings at build time using `bindgen`.
 
 Note that the `turbojpeg` crate "reexports" these features.
+
+## Cargo metadata
+
+The build script of this crate sets some [metadata][cargo-metadata], and build
+scripts of direct dependencies can access it from environment variables:
+
+- `DEP_TURBOJPEG_INCLUDE`: include paths for the C/C++ headers of TurboJPEG.
+  Multiple paths are separated with a comma (`,`).
+
+[cargo-metadata]: https://doc.rust-lang.org/cargo/reference/build-scripts.html#the-links-manifest-key

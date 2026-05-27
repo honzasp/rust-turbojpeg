@@ -1,9 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
 
 - Set `DEP_TURBOJPEG_INCLUDE` in build scripts of dependent packages
   ([#37](https://github.com/honzasp/rust-turbojpeg/pull/37))
+
+## 1.1.1 -- 2025-04-18
+
+- Upgrade to libjpeg-turbo version 3.1.0
 
 ## 1.0.1 -- 2024-09-29
 

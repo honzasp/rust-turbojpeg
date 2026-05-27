@@ -11,6 +11,17 @@ fn main() -> Result<()> {
     let link_kind = get_link_kind()?;
     let library = build_or_find_library(link_kind)?;
     generate_or_copy_bindings(&library)?;
+
+    if !library.include_paths.is_empty() {
+        // "cargo:include={}" is equivalent to "cargo::metadata=include={}", but "cargo::metadata"
+        // requires a higher Rust version.
+        //
+        // we use the same convention as `libz-sys` and separate multiple include paths by a comma.
+        let include_paths = library.include_paths.iter()
+            .map(|p| p.display().to_string()).collect::<Vec<_>>();
+        println!("cargo:include={}", include_paths.join(","));
+    }
+
     Ok(())
 }
 
@@ -173,9 +184,6 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
 
     let is_msvc = env("CARGO_CFG_TARGET_ENV").unwrap() == "msvc";
 
-    // "cargo:include={}" is equivalent to "cargo::metadata=include={}", but "cargo::metadata"
-    // requires a higher Rust version
-    println!("cargo:include={}", include_path.display());
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     println!("cargo:rustc-link-lib={}=turbojpeg{}", match link_kind {
         LinkKind::Static | LinkKind::Default => "static",

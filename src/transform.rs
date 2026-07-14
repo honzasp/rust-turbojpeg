@@ -275,7 +275,7 @@ impl Transformer {
             options |= raw::TJXOPT_CROP;
         }
 
-        let mut transform = raw::tjtransform {
+        let transform = raw::tjtransform {
             r: region,
             op: transform.op as libc::c_int,
             options: options as libc::c_int,
@@ -293,7 +293,7 @@ impl Transformer {
                 self.handle.as_ptr(),
                 jpeg_data.as_ptr(), jpeg_data.len() as raw::size_t,
                 1, &mut output.ptr, &mut output_len,
-                &mut transform,
+                &transform,
             )
         };
         output.len = output_len as usize;

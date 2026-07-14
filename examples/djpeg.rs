@@ -1,6 +1,6 @@
-use std::fs;
-use anyhow::{Result, Context as _};
+use anyhow::{Context as _, Result};
 use clap::clap_app;
+use std::fs;
 
 use turbojpeg::{Decompressor, Image, PixelFormat};
 
@@ -10,18 +10,18 @@ fn main() -> Result<()> {
         (@arg INPUT: <input> "Input JPEG file")
         (@arg OUTPUT: <output> "Output image file")
         (@arg SCALE: -s --scale [scale] "Apply a scaling factor (such as 7/8)")
-    ).get_matches();
+    )
+    .get_matches();
 
     let image_jpeg = fs::read(args.value_of("INPUT").unwrap())?;
 
     let scaling = match args.value_of("SCALE") {
         Some(scale) => {
-            let (num, denom) = scale.split_once('/')
-                .context("Wrong syntax of scale")?;
+            let (num, denom) = scale.split_once('/').context("Wrong syntax of scale")?;
             let num = num.parse()?;
             let denom = denom.parse()?;
             turbojpeg::ScalingFactor::new(num, denom)
-        },
+        }
         None => turbojpeg::ScalingFactor::ONE,
     };
 
@@ -39,13 +39,16 @@ fn main() -> Result<()> {
     assert_eq!(strides.1, 3);
     assert_eq!(extents.0, 3);
 
-    decompressor.decompress(&image_jpeg, Image {
-        pixels: image_flat.as_mut_slice(),
-        width: extents.1,
-        pitch: strides.2,
-        height: extents.2,
-        format: PixelFormat::RGB,
-    })?;
+    decompressor.decompress(
+        &image_jpeg,
+        Image {
+            pixels: image_flat.as_mut_slice(),
+            width: extents.1,
+            pitch: strides.2,
+            height: extents.2,
+            format: PixelFormat::RGB,
+        },
+    )?;
 
     image.save(args.value_of("OUTPUT").unwrap())?;
     Ok(())

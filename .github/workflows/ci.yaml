@@ -1,0 +1,67 @@
+on: [push, pull_request]
+name: "CI"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain:
+          - "1.81"
+          - "stable"
+          - "beta"
+          - "nightly"
+        os:
+          - ubuntu-latest
+          - macos-latest
+          # - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - run: rustup override set ${{ matrix.toolchain }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build
+
+  lint:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v1
+      - run: cargo clippy
+      - run: cargo fmt --check
+
+  test:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test
+
+  examples:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo run --example compressor
+      - run: cargo run --example decompressor
+      - run: cargo run --example downscale
+      - run: cargo run --example image --features image

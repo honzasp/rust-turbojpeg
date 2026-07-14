@@ -14,13 +14,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // prepare the destination image
     let mut image = Image {
         pixels: vec![0; 3 * width * height],
-        width: width,
+        width,
         pitch: 3 * width, // we use no padding between rows
-        height: height,
+        height,
         format: PixelFormat::RGB,
     };
 
-    // decompress the JPEG data 
+    // decompress the JPEG data
     decompressor.decompress(&jpeg_data, image.as_deref_mut())?;
 
     // use the raw pixel data

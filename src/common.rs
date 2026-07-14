@@ -119,7 +119,6 @@ impl PixelFormat {
     }
 }
 
-
 /// Chrominance subsampling options.
 ///
 /// When pixels are converted from RGB to YCbCr or from CMYK to YCCK as part of the JPEG
@@ -205,7 +204,7 @@ pub enum Subsamp {
     ///
     /// - decompressed into planar YUV images,
     /// - losslessly transformed if [`Transform::crop`][crate::Transform::crop] is specified and
-    /// [`Transform::gray`][crate::Transform::gray] is not specified, or
+    ///   [`Transform::gray`][crate::Transform::gray] is not specified, or
     /// - partially decompressed using a cropping region.
     #[doc(alias = "TJSAMP_UNKNOWN")]
     Unknown = raw::TJSAMP_TJSAMP_UNKNOWN,
@@ -315,7 +314,6 @@ impl Subsamp {
     }
 }
 
-
 /// JPEG colorspaces.
 #[doc(alias = "TJCS")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -387,7 +385,6 @@ impl Colorspace {
     }
 }
 
-
 /// Specialized `Result` type for TurboJPEG.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -398,7 +395,7 @@ pub enum Error {
     /// TurboJPEG returned an error message.
     #[error("TurboJPEG error: {0}")]
     TurboJpegError(String),
-    
+
     /// TurboJPEG unexpectedly returned a null pointer, prehaps because it ran out of memory.
     #[error("TurboJPEG returned null pointer")]
     Null,
@@ -428,4 +425,3 @@ pub enum Error {
     #[error("arguments to a TurboJPEG function were out of bounds")]
     OutOfBounds,
 }
-

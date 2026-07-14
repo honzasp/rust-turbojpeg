@@ -1,8 +1,8 @@
-use std::convert::TryInto as _;
-use crate::{Image, YuvImage, YuvPlanesImage, raw};
-use crate::buf::{OwnedBuf, OutputBuf};
-use crate::common::{Subsamp, Result, Error};
+use crate::buf::{OutputBuf, OwnedBuf};
+use crate::common::{Error, Result, Subsamp};
 use crate::handle::Handle;
+use crate::{raw, Image, YuvImage, YuvPlanesImage};
+use std::convert::TryInto as _;
 
 /// Compresses raw pixel data into JPEG.
 #[derive(Debug)]
@@ -23,8 +23,14 @@ impl Compressor {
     pub fn new() -> Result<Compressor> {
         let mut handle = Handle::new(raw::TJINIT_TJINIT_COMPRESS)?;
         handle.set(raw::TJPARAM_TJPARAM_QUALITY, DEFAULT_QUALITY as libc::c_int)?;
-        handle.set(raw::TJPARAM_TJPARAM_SUBSAMP, DEFAULT_SUBSAMP as i32 as libc::c_int)?;
-        Ok(Compressor { handle, subsamp: DEFAULT_SUBSAMP })
+        handle.set(
+            raw::TJPARAM_TJPARAM_SUBSAMP,
+            DEFAULT_SUBSAMP as i32 as libc::c_int,
+        )?;
+        Ok(Compressor {
+            handle,
+            subsamp: DEFAULT_SUBSAMP,
+        })
     }
 
     /// Set the quality of the compressed JPEG images.
@@ -48,7 +54,8 @@ impl Compressor {
     /// ```
     #[doc(alias = "TJPARAM_QUALITY")]
     pub fn set_quality(&mut self, quality: i32) -> Result<()> {
-        self.handle.set(raw::TJPARAM_TJPARAM_QUALITY, quality as libc::c_int)
+        self.handle
+            .set(raw::TJPARAM_TJPARAM_QUALITY, quality as libc::c_int)
     }
 
     /// Enable/disable lossless compression.
@@ -67,7 +74,8 @@ impl Compressor {
     /// and the value set by this method is overriden.
     #[doc(alias = "TJPARAM_SUBSAMP")]
     pub fn set_subsamp(&mut self, subsamp: Subsamp) -> Result<()> {
-        self.handle.set(raw::TJPARAM_TJPARAM_SUBSAMP, subsamp as i32 as libc::c_int)
+        self.handle
+            .set(raw::TJPARAM_TJPARAM_SUBSAMP, subsamp as i32 as libc::c_int)
     }
 
     /// Enable/disable optimized baseline entropy coding.
@@ -93,7 +101,8 @@ impl Compressor {
     /// ```
     #[doc(alias = "TJPARAM_OPTIMIZE")]
     pub fn set_optimize(&mut self, optimize: bool) -> Result<()> {
-        self.handle.set(raw::TJPARAM_TJPARAM_OPTIMIZE, optimize as libc::c_int)
+        self.handle
+            .set(raw::TJPARAM_TJPARAM_OPTIMIZE, optimize as libc::c_int)
     }
 
     /// Compresses the `image` into `output` buffer.
@@ -128,10 +137,22 @@ impl Compressor {
     pub fn compress(&mut self, image: Image<&[u8]>, output: &mut OutputBuf) -> Result<()> {
         image.assert_valid(image.pixels.len());
 
-        let Image { pixels, width, pitch, height, format } = image;
-        let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let pitch = pitch.try_into().map_err(|_| Error::IntegerOverflow("pitch"))?;
-        let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+        let Image {
+            pixels,
+            width,
+            pitch,
+            height,
+            format,
+        } = image;
+        let width = width
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("width"))?;
+        let pitch = pitch
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("pitch"))?;
+        let height = height
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("height"))?;
 
         self.handle.set(
             raw::TJPARAM_TJPARAM_NOREALLOC,
@@ -141,16 +162,21 @@ impl Compressor {
         let res = unsafe {
             raw::tj3Compress8(
                 self.handle.as_ptr(),
-                pixels.as_ptr(), width, pitch, height, format as libc::c_int,
-                &mut output.ptr, &mut output_len,
+                pixels.as_ptr(),
+                width,
+                pitch,
+                height,
+                format as libc::c_int,
+                &mut output.ptr,
+                &mut output_len,
             )
         };
         output.len = output_len as usize;
         if res != 0 {
-            return Err(self.handle.get_error())
+            return Err(self.handle.get_error());
         } else if output.ptr.is_null() {
             output.len = 0;
-            return Err(Error::Null)
+            return Err(Error::Null);
         }
 
         Ok(())
@@ -237,11 +263,23 @@ impl Compressor {
     pub fn compress_yuv(&mut self, image: YuvImage<&[u8]>, output: &mut OutputBuf) -> Result<()> {
         image.assert_valid(image.pixels.len());
 
-        let YuvImage { pixels, width, align, height, subsamp } = image;
+        let YuvImage {
+            pixels,
+            width,
+            align,
+            height,
+            subsamp,
+        } = image;
         self.set_subsamp(subsamp)?;
-        let width: libc::c_int = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
-        let height: libc::c_int = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+        let width: libc::c_int = width
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("width"))?;
+        let align = align
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("align"))?;
+        let height: libc::c_int = height
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("height"))?;
 
         self.handle.set(
             raw::TJPARAM_TJPARAM_NOREALLOC,
@@ -252,16 +290,20 @@ impl Compressor {
         let res = unsafe {
             raw::tj3CompressFromYUV8(
                 self.handle.as_ptr(),
-                pixels.as_ptr(), width, align, height,
-                &mut output.ptr, &mut output_len,
+                pixels.as_ptr(),
+                width,
+                align,
+                height,
+                &mut output.ptr,
+                &mut output_len,
             )
         };
         output.len = output_len as usize;
         if res != 0 {
-            return Err(self.handle.get_error())
+            return Err(self.handle.get_error());
         } else if output.ptr.is_null() {
             output.len = 0;
-            return Err(Error::Null)
+            return Err(Error::Null);
         }
         Ok(())
     }
@@ -291,7 +333,11 @@ impl Compressor {
     /// Returns the size of the compressed JPEG data. If the compressed image does not fit into
     /// `dest`, this method returns an error. Use [`compressed_buf_len()`] to determine buffer size
     /// that is guaranteed to be large enough for the compressed image.
-    pub fn compress_yuv_to_slice(&mut self, image: YuvImage<&[u8]>, output: &mut [u8]) -> Result<usize> {
+    pub fn compress_yuv_to_slice(
+        &mut self,
+        image: YuvImage<&[u8]>,
+        output: &mut [u8],
+    ) -> Result<usize> {
         let mut buf = OutputBuf::borrowed(output);
         self.compress_yuv(image, &mut buf)?;
         Ok(buf.len())
@@ -299,8 +345,8 @@ impl Compressor {
 
     /// Compress separate YUV planes into JPEG.
     ///
-    /// This function compresses separate Y, U (Cb), and V (Cr) image planes into 
-    /// a JPEG image. This is similar to [`compress_yuv()`][Self::compress_yuv], 
+    /// This function compresses separate Y, U (Cb), and V (Cr) image planes into
+    /// a JPEG image. This is similar to [`compress_yuv()`][Self::compress_yuv],
     /// but takes separate YUV planes as input instead of interleaved YUV data.
     ///
     /// # Arguments
@@ -347,9 +393,19 @@ impl Compressor {
         image: &YuvPlanesImage<&[u8]>,
         output: &mut OutputBuf,
     ) -> Result<()> {
-        image.assert_valid(image.y_plane.len(), image.u_plane.len(), image.v_plane.len());
-        let width = image.width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let height = image.height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+        image.assert_valid(
+            image.y_plane.len(),
+            image.u_plane.len(),
+            image.v_plane.len(),
+        );
+        let width = image
+            .width
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("width"))?;
+        let height = image
+            .height
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("height"))?;
 
         let planes = [
             image.y_plane.as_ptr(),
@@ -358,11 +414,20 @@ impl Compressor {
         ];
 
         let strides = [
-            image.y_stride.try_into().map_err(|_| Error::IntegerOverflow("y_stride"))?,
-            image.u_stride.try_into().map_err(|_| Error::IntegerOverflow("u_stride"))?,
-            image.v_stride.try_into().map_err(|_| Error::IntegerOverflow("v_stride"))?,
+            image
+                .y_stride
+                .try_into()
+                .map_err(|_| Error::IntegerOverflow("y_stride"))?,
+            image
+                .u_stride
+                .try_into()
+                .map_err(|_| Error::IntegerOverflow("u_stride"))?,
+            image
+                .v_stride
+                .try_into()
+                .map_err(|_| Error::IntegerOverflow("v_stride"))?,
         ];
-        
+
         // Set subsampling from the YuvPlanesImage structure
         self.set_subsamp(image.subsamp)?;
 
@@ -412,10 +477,7 @@ impl Compressor {
     /// This method copies the compressed data into a new `Vec`. If you would like to avoid the
     /// extra allocation and copying, consider using
     /// [`compress_yuv_planes_to_owned()`][Self::compress_yuv_planes_to_owned] instead.
-    pub fn compress_yuv_planes_to_vec(
-        &mut self,
-        image: &YuvPlanesImage<&[u8]>,
-    ) -> Result<Vec<u8>> {
+    pub fn compress_yuv_planes_to_vec(&mut self, image: &YuvPlanesImage<&[u8]>) -> Result<Vec<u8>> {
         let mut buf = OutputBuf::new_owned();
         self.compress_yuv_planes(image, &mut buf)?;
         Ok(buf.to_vec())
@@ -436,7 +498,6 @@ impl Compressor {
         Ok(buf.len())
     }
 
-
     /// Compute the maximum size of a compressed image.
     ///
     /// This depends on image `width` and `height`, and also on the current setting of chrominance
@@ -450,7 +511,7 @@ impl Compressor {
 }
 
 /// Compress an image to JPEG.
-/// 
+///
 /// Uses the given quality and chrominance subsampling option and returns the JPEG data in a buffer
 /// owned by TurboJPEG. If this function does not fit your needs, please see [`Compressor`].
 ///
@@ -552,9 +613,15 @@ pub fn compress_yuv_planes(image: &YuvPlanesImage<&[u8]>, quality: i32) -> Resul
 /// about this edge case.
 #[doc(alias = "tj3JPEGBufSize")]
 pub fn compressed_buf_len(width: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
-    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+    let width = width
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("width"))?;
+    let height = height
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("height"))?;
     let len = unsafe { raw::tj3JPEGBufSize(width, height, subsamp as libc::c_int) };
-    let len = len.try_into().map_err(|_| Error::IntegerOverflow("buf len"))?;
+    let len = len
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("buf len"))?;
     Ok(len)
 }

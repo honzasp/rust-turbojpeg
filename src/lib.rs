@@ -3,22 +3,22 @@
 //! - [Compression][compress()]: encode images into JPEG.
 //! - [Decompression][decompress()]: decode JPEGs into pixels.
 //! - [Lossless transformations][transform()]: apply basic geometric transformations (rotate, mirror,
-//! ...) without going through decompression and compression, so that the image does not lose
-//! quality.
+//!   ...) without going through decompression and compression, so that the image does not lose
+//!   quality.
 //! - [Compression from YUV][compress_yuv()]: encode JPEG from YUV, both in pixel format and in
-//! [planar format][compress_yuv_planes()].
+//!   [planar format][compress_yuv_planes()].
 //! - [Decompression into YUV][decompress_to_yuv()]: decode JPEG into YUV (YCbCr), without
-//! performing the color transform into RGB.
+//!   performing the color transform into RGB.
 //! - [Fractional scaling during decompression][Decompressor::set_scaling_factor()]: save time and
-//! memory by downscaling or upscaling the JPEG image while decoding.
+//!   memory by downscaling or upscaling the JPEG image while decoding.
 //!
 //! # Integration with image-rs (version 0.24)
-//! 
+//!
 //! To easily encode and decode images from the [`image`][image-rs] crate (version 0.24), please
 //! enable the optional dependency `"image"` of this crate in your `Cargo.toml`. Then you can use
 //! the functions [`decompress_image()`][crate::decompress_image] and
 //! [`compress_image()`][crate::compress_image]:
-//! 
+//!
 //! ```
 //! # #[cfg(feature = "image")] {
 //! // read JPEG data from file
@@ -33,14 +33,14 @@
 //! # }
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
-//! 
+//!
 //! This crate supports these specializations of [`image::ImageBuffer`]:
-//! 
+//!
 //! - [`image::RgbImage`]
 //! - [`image::RgbaImage`] (JPEG does not support alpha channel, so alpha is ignored when encoding
-//! and set to 255 when decoding)
+//!   and set to 255 when decoding)
 //! - [`image::GrayImage`]
-//! 
+//!
 //! [image-rs]: https://docs.rs/image/*/image/index.html
 //!
 //! # The [`Image`] type
@@ -58,27 +58,27 @@
 //! - **Decompress** images from JPEG using [`decompress()`] or [`Decompressor`].
 //! - **Compress** images into JPEG using [`compress()`] or [`Compressor`].
 //! - **Transform** images without recompression using [`transform()`] or [`Transformer`]. The
-//! transformations are described in the [`Transform`] struct.
+//!   transformations are described in the [`Transform`] struct.
 //! - **Read header** of JPEG image to get its size without decompression using
-//! [`Decompressor::read_header()`] or [`read_header()`].
+//!   [`Decompressor::read_header()`] or [`read_header()`].
 //! - **Decompress** images **into YUV** using [`decompress_to_yuv()`] or [`Decompressor`].
 //! - **Compress** images **from YUV** using [`compress_yuv()`] or [`Compressor`].
-//! 
+//!
 //! # The [`OutputBuf`] and [`OwnedBuf`] types
 //!
 //! During compression, we need to write the produced JPEG data into some memory buffer. You have
 //! two options:
 //!
 //! - Write the data into a mutable slice (`&mut [u8]`) that you already allocated and initialized.
-//! This has the disadvantage that you must allocate all memory up front, so you need to make the
-//! buffer very large to ensure that it can hold the compressed image even in the worst case, when
-//! the compression does not reduce the image size at all. You will also need to initialize the
-//! memory to comply with the Rust safety requirements.
+//!   This has the disadvantage that you must allocate all memory up front, so you need to make the
+//!   buffer very large to ensure that it can hold the compressed image even in the worst case, when
+//!   the compression does not reduce the image size at all. You will also need to initialize the
+//!   memory to comply with the Rust safety requirements.
 //!
 //! - Write the data into a memory buffer managed by TurboJPEG. This has the advantage that
-//! TurboJPEG can automatically resize the buffer, so we don't have to conservatively allocate and
-//! initialize a large chunk of memory, but we can let TurboJPEG grow the buffer as needed. This
-//! kind of buffer is exposed as the [`OwnedBuf`].
+//!   TurboJPEG can automatically resize the buffer, so we don't have to conservatively allocate and
+//!   initialize a large chunk of memory, but we can let TurboJPEG grow the buffer as needed. This
+//!   kind of buffer is exposed as the [`OwnedBuf`].
 //!
 //! To handle both of these cases, this crate provides the [`OutputBuf`] type, which can hold
 //! either a `&mut [u8]` or an `OwnedBuf`.
@@ -93,10 +93,10 @@
 #![warn(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub extern crate turbojpeg_sys as raw;
-pub extern crate libc;
 #[cfg(feature = "image")]
 pub extern crate image as image;
+pub extern crate libc;
+pub extern crate turbojpeg_sys as raw;
 
 mod buf;
 mod common;
@@ -105,14 +105,18 @@ mod decompress;
 mod handle;
 mod image_internal;
 mod transform;
-pub use self::buf::{OwnedBuf, OutputBuf};
-pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
-pub use self::compress::{Compressor, compress, compress_yuv, compress_yuv_planes, compressed_buf_len};
-pub use self::decompress::{Decompressor, DecompressHeader, ScalingFactor, decompress, read_header, decompress_to_yuv};
-pub use self::image_internal::{Image, YuvImage, YuvPlanesImage, yuv_pixels_len, yuv_plane_len};
-pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};
+pub use self::buf::{OutputBuf, OwnedBuf};
+pub use self::common::{Colorspace, Error, PixelFormat, Result, Subsamp};
+pub use self::compress::{
+    compress, compress_yuv, compress_yuv_planes, compressed_buf_len, Compressor,
+};
+pub use self::decompress::{
+    decompress, decompress_to_yuv, read_header, DecompressHeader, Decompressor, ScalingFactor,
+};
+pub use self::image_internal::{yuv_pixels_len, yuv_plane_len, Image, YuvImage, YuvPlanesImage};
+pub use self::transform::{transform, Transform, TransformCrop, TransformOp, Transformer};
 
 #[cfg(feature = "image")]
 mod image_rs;
 #[cfg(feature = "image")]
-pub use self::image_rs::{JpegPixel, compress_image, decompress_image};
+pub use self::image_rs::{compress_image, decompress_image, JpegPixel};

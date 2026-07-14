@@ -1,16 +1,16 @@
+use crate::common::{Error, PixelFormat, Result, Subsamp};
 use std::ops::{Deref, DerefMut};
-use crate::common::{PixelFormat, Subsamp, Result, Error};
 
 /// An image with pixels of type `T`.
 ///
 /// Three variants of this type are commonly used:
 ///
 /// - `Image<&[u8]>`: immutable reference to image data (input image for compression by
-/// [`Compressor`][crate::Compressor])
+///   [`Compressor`][crate::Compressor])
 /// - `Image<&mut [u8]>`: mutable reference to image data (output image for decompression by
-/// [`Decompressor`][crate::Decompressor]).
+///   [`Decompressor`][crate::Decompressor]).
 /// - `Image<Vec<u8>>`: owned image data (you can convert it to a reference using
-/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
+///   [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
 ///
 /// Data for pixel in column `x` and row `y` is stored in `pixels` at offset `y*pitch +
 /// x*format.size()`.
@@ -34,7 +34,10 @@ impl<T> Image<T> {
     /// Converts from `&Image<T>` to `Image<&T::Target>`.
     ///
     /// In particular, you can use this to get `Image<&[u8]>` from `Image<Vec<u8>>`.
-    pub fn as_deref(&self) -> Image<&T::Target> where T: Deref {
+    pub fn as_deref(&self) -> Image<&T::Target>
+    where
+        T: Deref,
+    {
         Image {
             pixels: self.pixels.deref(),
             width: self.width,
@@ -47,7 +50,10 @@ impl<T> Image<T> {
     /// Converts from `&mut Image<T>` to `Image<&mut T::Target>`.
     ///
     /// In particular, you can use this to get `Image<&mut [u8]>` from `Image<Vec<u8>>`.
-    pub fn as_deref_mut(&mut self) -> Image<&mut T::Target> where T: DerefMut {
+    pub fn as_deref_mut(&mut self) -> Image<&mut T::Target>
+    where
+        T: DerefMut,
+    {
         Image {
             pixels: self.pixels.deref_mut(),
             width: self.width,
@@ -58,12 +64,29 @@ impl<T> Image<T> {
     }
 
     pub(crate) fn assert_valid(&self, pixels_len: usize) {
-        let Image { pixels: _, width, pitch, height, format } = *self;
-        assert!(pitch >= width*format.size(),
-            "pitch {} is too small for width {} and pixel format {:?}", pitch, width, format);
-        assert!(height == 0 || pitch*(height - 1) + width*format.size() <= pixels_len,
+        let Image {
+            pixels: _,
+            width,
+            pitch,
+            height,
+            format,
+        } = *self;
+        assert!(
+            pitch >= width * format.size(),
+            "pitch {} is too small for width {} and pixel format {:?}",
+            pitch,
+            width,
+            format
+        );
+        assert!(
+            height == 0 || pitch * (height - 1) + width * format.size() <= pixels_len,
             "pixels length {} is too small for width {}, height {}, pitch {} and pixel format {:?}",
-            pixels_len, width, height, pitch, format);
+            pixels_len,
+            width,
+            height,
+            pitch,
+            format
+        );
     }
 }
 
@@ -101,9 +124,9 @@ impl Image<Vec<u8>> {
             let max_iters = 100;
             let (mut x, mut y) = (set_x, set_y);
             let mut iters = 0;
-            while x*x + y*y <= 4. && iters < max_iters {
-                let next_x = x*x - y*y + set_x;
-                let next_y = 2.*x*y + set_y;
+            while x * x + y * y <= 4. && iters < max_iters {
+                let next_x = x * x - y * y + set_x;
+                let next_y = 2. * x * y + set_y;
                 x = next_x;
                 y = next_y;
                 iters += 1;
@@ -113,11 +136,24 @@ impl Image<Vec<u8>> {
 
         // convert the f64 values to pixel values
 
-        fn assign_rgba(r: usize, g: usize, b: usize, a: Option<usize>, data: &mut [u8], value: f64) {
-            data[b] = quantize(f64::clamp(f64::min(3.*value, 3. - 3.*value), 0., 1.));
-            data[r] = quantize(f64::clamp(f64::max(1. - 3.*value, 3.*value - 2.), 0., 1.));
+        fn assign_rgba(
+            r: usize,
+            g: usize,
+            b: usize,
+            a: Option<usize>,
+            data: &mut [u8],
+            value: f64,
+        ) {
+            data[b] = quantize(f64::clamp(f64::min(3. * value, 3. - 3. * value), 0., 1.));
+            data[r] = quantize(f64::clamp(
+                f64::max(1. - 3. * value, 3. * value - 2.),
+                0.,
+                1.,
+            ));
             data[g] = quantize(f64::clamp(value, 0., 1.));
-            if let Some(a) = a { data[a] = 255; }
+            if let Some(a) = a {
+                data[a] = 255;
+            }
         }
 
         fn assign_gray(data: &mut [u8], value: f64) {
@@ -128,25 +164,24 @@ impl Image<Vec<u8>> {
             (value * 255.) as u8
         }
 
-
         let pixel_size = format.size();
         let assign_fn: &dyn Fn(&mut [u8], f64) = match format {
-            PixelFormat::RGB =>
-                &|data, value| assign_rgba(0,1,2,None, data, value),
-            PixelFormat::BGR =>
-                &|data, value| assign_rgba(2,1,0,None, data, value),
-            PixelFormat::RGBX | PixelFormat::RGBA =>
-                &|data, value| assign_rgba(0,1,2,Some(3), data, value),
-            PixelFormat::BGRX | PixelFormat::BGRA =>
-                &|data, value| assign_rgba(2,1,0,Some(3), data, value),
-            PixelFormat::XRGB | PixelFormat::ARGB =>
-                &|data, value| assign_rgba(1,2,3,Some(0), data, value),
-            PixelFormat::XBGR | PixelFormat::ABGR =>
-                &|data, value| assign_rgba(3,2,1,Some(0), data, value),
-            PixelFormat::GRAY =>
-                &assign_gray,
-            PixelFormat::CMYK =>
-                &|data, value| assign_rgba(0,1,2,Some(3), data, value),
+            PixelFormat::RGB => &|data, value| assign_rgba(0, 1, 2, None, data, value),
+            PixelFormat::BGR => &|data, value| assign_rgba(2, 1, 0, None, data, value),
+            PixelFormat::RGBX | PixelFormat::RGBA => {
+                &|data, value| assign_rgba(0, 1, 2, Some(3), data, value)
+            }
+            PixelFormat::BGRX | PixelFormat::BGRA => {
+                &|data, value| assign_rgba(2, 1, 0, Some(3), data, value)
+            }
+            PixelFormat::XRGB | PixelFormat::ARGB => {
+                &|data, value| assign_rgba(1, 2, 3, Some(0), data, value)
+            }
+            PixelFormat::XBGR | PixelFormat::ABGR => {
+                &|data, value| assign_rgba(3, 2, 1, Some(0), data, value)
+            }
+            PixelFormat::GRAY => &assign_gray,
+            PixelFormat::CMYK => &|data, value| assign_rgba(0, 1, 2, Some(3), data, value),
         };
 
         // generate the image
@@ -159,11 +194,17 @@ impl Image<Vec<u8>> {
             for x in 0..width {
                 let (set_x, set_y) = pixel_to_set(x, y);
                 let value = eval_set(set_x, set_y);
-                assign_fn(&mut pixels[y*pitch + pixel_size*x..], value);
+                assign_fn(&mut pixels[y * pitch + pixel_size * x..], value);
             }
         }
 
-        Image { pixels, width, pitch, height, format }
+        Image {
+            pixels,
+            width,
+            pitch,
+            height,
+            format,
+        }
     }
 }
 
@@ -175,9 +216,9 @@ impl Image<Vec<u8>> {
 /// Two variants of this type are commonly used:
 ///
 /// - `YuvImage<&mut [u8]>`: mutable reference to YUV image data (output image for decompression by
-/// [`Decompressor`][crate::Decompressor]).
+///   [`Decompressor`][crate::Decompressor]).
 /// - `YuvImage<Vec<u8>>`: owned YUV image data (you can convert it to a reference using
-/// [`.as_deref()`][YuvImage::as_deref] or [`.as_deref_mut()`][YuvImage::as_deref_mut]).
+///   [`.as_deref()`][YuvImage::as_deref] or [`.as_deref_mut()`][YuvImage::as_deref_mut]).
 ///
 /// # Image format
 ///
@@ -185,13 +226,13 @@ impl Image<Vec<u8>> {
 /// [chrominance subsampling][Self::subsamp] and [row alignment][Self::align] of the image:
 ///
 /// - [Luminance (Y) plane width][Self::y_width()] is the image width padded to the nearest
-/// multiple of the [horizontal subsampling factor][Subsamp::width()].
+///   multiple of the [horizontal subsampling factor][Subsamp::width()].
 /// - [Luminance (Y) plane height][Self::y_height()] is the image height padded to the nearest
-/// multiple of the [vertical subsampling factor][Subsamp::height()].
+///   multiple of the [vertical subsampling factor][Subsamp::height()].
 /// - [Chrominance (U and V) plane width][Self::uv_width()] is the luminance plane width divided by
-/// the horizontal subsampling factor.
+///   the horizontal subsampling factor.
 /// - [Chrominance (U and V) plane height][Self::uv_height()] is the luminance plane height divided
-/// by the vertical subsampling factor.
+///   by the vertical subsampling factor.
 /// - Each row is further padded to the nearest multiple of the [row alignment][Self::align].
 ///
 /// ## Example
@@ -235,7 +276,10 @@ impl<T> YuvImage<T> {
     /// Converts from `&YuvImage<T>` to `YuvImage<&T::Target>`.
     ///
     /// In particular, you can use this to get `YuvImage<&[u8]>` from `YuvImage<Vec<u8>>`.
-    pub fn as_deref(&self) -> YuvImage<&T::Target> where T: Deref {
+    pub fn as_deref(&self) -> YuvImage<&T::Target>
+    where
+        T: Deref,
+    {
         YuvImage {
             pixels: self.pixels.deref(),
             width: self.width,
@@ -248,7 +292,10 @@ impl<T> YuvImage<T> {
     /// Converts from `&mut YuvImage<T>` to `YuvImage<&mut T::Target>`.
     ///
     /// In particular, you can use this to get `YuvImage<&mut [u8]>` from `YuvImage<Vec<u8>>`.
-    pub fn as_deref_mut(&mut self) -> YuvImage<&mut T::Target> where T: DerefMut {
+    pub fn as_deref_mut(&mut self) -> YuvImage<&mut T::Target>
+    where
+        T: DerefMut,
+    {
         YuvImage {
             pixels: self.pixels.deref_mut(),
             width: self.width,
@@ -303,11 +350,23 @@ impl<T> YuvImage<T> {
     }
 
     pub(crate) fn assert_valid(&self, pixels_len: usize) {
-        let YuvImage { pixels: _, width, align, height, subsamp } = *self;
+        let YuvImage {
+            pixels: _,
+            width,
+            align,
+            height,
+            subsamp,
+        } = *self;
         let min_yuv_pixels_len = yuv_pixels_len(width, align, height, subsamp).unwrap();
-        assert!(min_yuv_pixels_len <= pixels_len,
+        assert!(
+            min_yuv_pixels_len <= pixels_len,
             "YUV pixels length {} is too small for width {}, height {}, align {} and subsamp {:?}",
-            pixels_len, width, height, align, subsamp);
+            pixels_len,
+            width,
+            height,
+            align,
+            subsamp
+        );
     }
 }
 
@@ -318,7 +377,7 @@ impl<T> YuvImage<T> {
 ///
 /// Returns an error on integer overflow. You can just `.unwrap()` the result if you don't care
 /// about this edge case.
-/// 
+///
 /// # Example
 ///
 /// ```
@@ -335,10 +394,21 @@ impl<T> YuvImage<T> {
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 #[doc(alias = "tj3YUVBufSize")]
-pub fn yuv_pixels_len(width: usize, align: usize, height: usize, subsamp: Subsamp) -> Result<usize> {
-    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-    let align = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
-    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+pub fn yuv_pixels_len(
+    width: usize,
+    align: usize,
+    height: usize,
+    subsamp: Subsamp,
+) -> Result<usize> {
+    let width = width
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("width"))?;
+    let align = align
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("align"))?;
+    let height = height
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("height"))?;
     let len = unsafe { raw::tj3YUVBufSize(width, align, height, subsamp as libc::c_int) };
     match len.try_into() {
         Ok(0) => Err(Error::OutOfBounds),
@@ -346,7 +416,6 @@ pub fn yuv_pixels_len(width: usize, align: usize, height: usize, subsamp: Subsam
         Err(_) => Err(Error::IntegerOverflow("yuv size")),
     }
 }
-
 
 /// A YUV (YCbCr) image with separate planes.
 ///
@@ -383,7 +452,10 @@ pub struct YuvPlanesImage<T> {
 
 impl<T> YuvPlanesImage<T> {
     /// Converts from `&YuvPlanesImage<T>` to `YuvPlanesImage<&T::Target>`.
-    pub fn as_deref(&self) -> YuvPlanesImage<&T::Target> where T: Deref {
+    pub fn as_deref(&self) -> YuvPlanesImage<&T::Target>
+    where
+        T: Deref,
+    {
         YuvPlanesImage {
             y_plane: self.y_plane.deref(),
             u_plane: self.u_plane.deref(),
@@ -425,22 +497,51 @@ impl<T> YuvPlanesImage<T> {
     }
 
     pub(crate) fn assert_valid(&self, y_len: usize, u_len: usize, v_len: usize) {
-        let YuvPlanesImage { width, height, y_stride, u_stride, v_stride, subsamp, .. } = *self;
+        let YuvPlanesImage {
+            width,
+            height,
+            y_stride,
+            u_stride,
+            v_stride,
+            subsamp,
+            ..
+        } = *self;
 
-        let min_y_plane_len = yuv_plane_len(YuvComponent::Y, width, y_stride, height, subsamp).unwrap();
-        assert!(min_y_plane_len <= y_len,
+        let min_y_plane_len =
+            yuv_plane_len(YuvComponent::Y, width, y_stride, height, subsamp).unwrap();
+        assert!(
+            min_y_plane_len <= y_len,
             "Y plane length {} is too small for width {}, height {}, stride {} and subsamp {:?}",
-            y_len, width, height, y_stride, subsamp);
+            y_len,
+            width,
+            height,
+            y_stride,
+            subsamp
+        );
 
-        let min_u_plane_len = yuv_plane_len(YuvComponent::U, width, u_stride, height, subsamp).unwrap();
-        assert!(min_u_plane_len <= u_len,
+        let min_u_plane_len =
+            yuv_plane_len(YuvComponent::U, width, u_stride, height, subsamp).unwrap();
+        assert!(
+            min_u_plane_len <= u_len,
             "U plane length {} is too small for width {}, height {}, stride {} and subsamp {:?}",
-            u_len, width, height, u_stride, subsamp);
+            u_len,
+            width,
+            height,
+            u_stride,
+            subsamp
+        );
 
-        let min_v_plane_len = yuv_plane_len(YuvComponent::V, width, v_stride, height, subsamp).unwrap();
-        assert!(min_v_plane_len <= v_len,
+        let min_v_plane_len =
+            yuv_plane_len(YuvComponent::V, width, v_stride, height, subsamp).unwrap();
+        assert!(
+            min_v_plane_len <= v_len,
             "V plane length {} is too small for width {}, height {}, stride {} and subsamp {:?}",
-            v_len, width, height, v_stride, subsamp);
+            v_len,
+            width,
+            height,
+            v_stride,
+            subsamp
+        );
     }
 }
 
@@ -467,13 +568,21 @@ pub fn yuv_plane_len(
     height: usize,
     subsamp: Subsamp,
 ) -> Result<usize> {
-    let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-    let stride = stride.try_into().map_err(|_| Error::IntegerOverflow("stride"))?;
-    let height = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+    let width = width
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("width"))?;
+    let stride = stride
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("stride"))?;
+    let height = height
+        .try_into()
+        .map_err(|_| Error::IntegerOverflow("height"))?;
     let len = unsafe {
         raw::tj3YUVPlaneSize(
             component as libc::c_int,
-            width, stride, height,
+            width,
+            stride,
+            height,
             subsamp as libc::c_int,
         )
     };

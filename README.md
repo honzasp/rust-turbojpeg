@@ -38,6 +38,9 @@ README][sys-readme] for details.
 
 ## Contributing
 
+This repository contains a git submodule (`./turbojpeg-sys/libjpeg-turbo/`);
+be sure to clone it with `--recurse-submodules`.
+
 All contributions are welcome! Please contact me (@honzasp) or open a pull
 request. The main areas for improvement are:
 

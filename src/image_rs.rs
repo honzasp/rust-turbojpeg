@@ -1,8 +1,8 @@
-use crate::Image;
 use crate::buf::OwnedBuf;
-use crate::compress::Compressor;
 use crate::common::{PixelFormat, Result, Subsamp};
+use crate::compress::Compressor;
 use crate::decompress::Decompressor;
+use crate::Image;
 
 /// Decompresses image from JPEG into an [`image::ImageBuffer`].
 ///
@@ -19,7 +19,8 @@ use crate::decompress::Decompressor;
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec<u8>>>
-    where P: JpegPixel + 'static
+where
+    P: JpegPixel + 'static,
 {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;
@@ -35,11 +36,9 @@ pub fn decompress_image<P>(jpeg_data: &[u8]) -> Result<image::ImageBuffer<P, Vec
     };
     decompressor.decompress(jpeg_data, image)?;
 
-    let image_buf = image::ImageBuffer::from_raw(
-        header.width as u32,
-        header.height as u32,
-        image_data,
-    ).unwrap();
+    let image_buf =
+        image::ImageBuffer::from_raw(header.width as u32, header.height as u32, image_data)
+            .unwrap();
     Ok(image_buf)
 }
 
@@ -73,7 +72,8 @@ pub fn compress_image<P>(
     quality: i32,
     subsamp: Subsamp,
 ) -> Result<OwnedBuf>
-    where P: JpegPixel + 'static
+where
+    P: JpegPixel + 'static,
 {
     let (width, height) = image_buf.dimensions();
     let format = P::PIXEL_FORMAT;

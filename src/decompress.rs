@@ -1,9 +1,9 @@
-use std::convert::TryInto as _;
-use std::fmt;
-use crate::{Image, YuvImage, raw};
-use crate::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
+use crate::common::{Colorspace, Error, PixelFormat, Result, Subsamp};
 use crate::handle::Handle;
 use crate::image_internal::yuv_pixels_len;
+use crate::{raw, Image, YuvImage};
+use std::convert::TryInto as _;
+use std::fmt;
 
 /// Decompresses JPEG data into raw pixels.
 #[derive(Debug)]
@@ -73,7 +73,10 @@ impl ScalingFactor {
     /// ```
     pub fn new(num: usize, denom: usize) -> Self {
         let gcd = gcd::binary_usize(num, denom);
-        Self { num: num / gcd, denom: denom / gcd }
+        Self {
+            num: num / gcd,
+            denom: denom / gcd,
+        }
     }
 
     /// Get the numerator (the "3" in "3/4").
@@ -130,7 +133,7 @@ impl DecompressHeader {
         Self {
             width: factor.scale(self.width),
             height: factor.scale(self.height),
-            .. *self
+            ..*self
         }
     }
 }
@@ -140,7 +143,10 @@ impl Decompressor {
     #[doc(alias = "tj3Init")]
     pub fn new() -> Result<Decompressor> {
         let handle = Handle::new(raw::TJINIT_TJINIT_DECOMPRESS)?;
-        Ok(Self { handle, scaling_factor: ScalingFactor::ONE })
+        Ok(Self {
+            handle,
+            scaling_factor: ScalingFactor::ONE,
+        })
     }
 
     /// Read the JPEG header without decompressing the image.
@@ -162,23 +168,37 @@ impl Decompressor {
     /// ```
     #[doc(alias = "tj3DecompressHeader")]
     pub fn read_header(&mut self, jpeg_data: &[u8]) -> Result<DecompressHeader> {
-        let jpeg_data_len = jpeg_data.len().try_into()
+        let jpeg_data_len = jpeg_data
+            .len()
+            .try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
         let res = unsafe {
             raw::tj3DecompressHeader(self.handle.as_ptr(), jpeg_data.as_ptr(), jpeg_data_len)
         };
         if res != 0 {
-            return Err(self.handle.get_error())
+            return Err(self.handle.get_error());
         }
 
-        let width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH)
-            .try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT)
-            .try_into().map_err(|_| Error::IntegerOverflow("height"))?;
+        let width = self
+            .handle
+            .get(raw::TJPARAM_TJPARAM_JPEGWIDTH)
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("width"))?;
+        let height = self
+            .handle
+            .get(raw::TJPARAM_TJPARAM_JPEGHEIGHT)
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("height"))?;
         let subsamp = Subsamp::from_int(self.handle.get(raw::TJPARAM_TJPARAM_SUBSAMP))?;
         let colorspace = Colorspace::from_int(self.handle.get(raw::TJPARAM_TJPARAM_COLORSPACE))?;
         let is_lossless = self.handle.get(raw::TJPARAM_TJPARAM_LOSSLESS) != 0;
-        Ok(DecompressHeader { width, height, subsamp, colorspace, is_lossless })
+        Ok(DecompressHeader {
+            width,
+            height,
+            subsamp,
+            colorspace,
+            is_lossless,
+        })
     }
 
     /// Set scaling factor for subsequent decompression operations.
@@ -219,11 +239,16 @@ impl Decompressor {
     /// ```
     #[doc(alias = "tj3SetScalingFactor")]
     pub fn set_scaling_factor(&mut self, scaling_factor: ScalingFactor) -> Result<()> {
-        let num: libc::c_int = scaling_factor.num.try_into()
+        let num: libc::c_int = scaling_factor
+            .num
+            .try_into()
             .map_err(|_| Error::IntegerOverflow("num"))?;
-        let denom: libc::c_int = scaling_factor.denom.try_into()
+        let denom: libc::c_int = scaling_factor
+            .denom
+            .try_into()
             .map_err(|_| Error::IntegerOverflow("denom"))?;
-        self.handle.set_scaling_factor(raw::tjscalingfactor { num, denom })?;
+        self.handle
+            .set_scaling_factor(raw::tjscalingfactor { num, denom })?;
         self.scaling_factor = scaling_factor;
         Ok(())
     }
@@ -270,11 +295,25 @@ impl Decompressor {
     #[doc(alias = "tj3Decompress8")]
     pub fn decompress(&mut self, jpeg_data: &[u8], output: Image<&mut [u8]>) -> Result<()> {
         output.assert_valid(output.pixels.len());
-        let Image { pixels, width, pitch, height, format } = output;
-        let width: libc::c_int = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let pitch: libc::c_int = pitch.try_into().map_err(|_| Error::IntegerOverflow("pitch"))?;
-        let height: libc::c_int = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-        let jpeg_data_len: raw::size_t = jpeg_data.len().try_into()
+        let Image {
+            pixels,
+            width,
+            pitch,
+            height,
+            format,
+        } = output;
+        let width: libc::c_int = width
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("width"))?;
+        let pitch: libc::c_int = pitch
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("pitch"))?;
+        let height: libc::c_int = height
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("height"))?;
+        let jpeg_data_len: raw::size_t = jpeg_data
+            .len()
+            .try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
 
         self.check_output_size(jpeg_data, width, height)?;
@@ -282,12 +321,15 @@ impl Decompressor {
         let res = unsafe {
             raw::tj3Decompress8(
                 self.handle.as_ptr(),
-                jpeg_data.as_ptr(), jpeg_data_len,
-                pixels.as_mut_ptr(), pitch, format as i32,
+                jpeg_data.as_ptr(),
+                jpeg_data_len,
+                pixels.as_mut_ptr(),
+                pitch,
+                format as i32,
             )
         };
         if res != 0 {
-            return Err(self.handle.get_error())
+            return Err(self.handle.get_error());
         }
 
         Ok(())
@@ -331,13 +373,31 @@ impl Decompressor {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     #[doc(alias = "tj3DecompressToYUV8")]
-    pub fn decompress_to_yuv(&mut self, jpeg_data: &[u8], output: YuvImage<&mut [u8]>) -> Result<()> {
+    pub fn decompress_to_yuv(
+        &mut self,
+        jpeg_data: &[u8],
+        output: YuvImage<&mut [u8]>,
+    ) -> Result<()> {
         output.assert_valid(output.pixels.len());
-        let YuvImage { pixels, width, align, height, subsamp: _ } = output;
-        let width: libc::c_int = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
-        let align: libc::c_int = align.try_into().map_err(|_| Error::IntegerOverflow("align"))?;
-        let height: libc::c_int = height.try_into().map_err(|_| Error::IntegerOverflow("height"))?;
-        let jpeg_data_len: raw::size_t = jpeg_data.len().try_into()
+        let YuvImage {
+            pixels,
+            width,
+            align,
+            height,
+            subsamp: _,
+        } = output;
+        let width: libc::c_int = width
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("width"))?;
+        let align: libc::c_int = align
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("align"))?;
+        let height: libc::c_int = height
+            .try_into()
+            .map_err(|_| Error::IntegerOverflow("height"))?;
+        let jpeg_data_len: raw::size_t = jpeg_data
+            .len()
+            .try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
 
         self.check_output_size(jpeg_data, width, height)?;
@@ -345,28 +405,38 @@ impl Decompressor {
         let res = unsafe {
             raw::tj3DecompressToYUV8(
                 self.handle.as_ptr(),
-                jpeg_data.as_ptr(), jpeg_data_len,
-                pixels.as_mut_ptr(), align,
+                jpeg_data.as_ptr(),
+                jpeg_data_len,
+                pixels.as_mut_ptr(),
+                align,
             )
         };
         if res != 0 {
-            return Err(self.handle.get_error())
+            return Err(self.handle.get_error());
         }
 
         Ok(())
     }
 
-    fn check_output_size(&mut self, jpeg_data: &[u8], width: libc::c_int, height: libc::c_int) -> Result<()> {
+    fn check_output_size(
+        &mut self,
+        jpeg_data: &[u8],
+        width: libc::c_int,
+        height: libc::c_int,
+    ) -> Result<()> {
         let header = self.read_header(jpeg_data)?;
 
         if header.is_lossless && self.scaling_factor != ScalingFactor::ONE {
-            return Err(Error::CannotScaleLossless)
+            return Err(Error::CannotScaleLossless);
         }
         let scaled_width = self.scaling_factor.scale(header.width);
         let scaled_height = self.scaling_factor.scale(header.height);
 
         if width < scaled_width as i32 || height < scaled_height as i32 {
-            return Err(Error::OutputTooSmall(scaled_width as i32, scaled_height as i32))
+            return Err(Error::OutputTooSmall(
+                scaled_width as i32,
+                scaled_height as i32,
+            ));
         }
 
         Ok(())
@@ -390,18 +460,22 @@ impl Decompressor {
     #[doc(alias = "tj3GetScalingFactors")]
     pub fn supported_scaling_factors() -> Vec<ScalingFactor> {
         let mut count: libc::c_int = 0;
-        let ptr: *const raw::tjscalingfactor = unsafe {
-            raw::tj3GetScalingFactors(&mut count as *mut _)
-        };
-        let count: usize = count.try_into()
+        let ptr: *const raw::tjscalingfactor =
+            unsafe { raw::tj3GetScalingFactors(&mut count as *mut _) };
+        let count: usize = count
+            .try_into()
             .expect("tj3GetScalingFactors() returned a number that cannot be converted to usize");
 
         let mut list = Vec::with_capacity(count);
         for i in 0..count {
             let factor = unsafe { ptr.add(i).read() };
-            let num: usize = factor.num.try_into()
+            let num: usize = factor
+                .num
+                .try_into()
                 .expect("Numerator of a tjscalingfactor cannot be converted to usize");
-            let denom: usize = factor.denom.try_into()
+            let denom: usize = factor
+                .denom
+                .try_into()
                 .expect("Denominator of a tjscalingfactor cannot be converted to usize");
             list.push(ScalingFactor { num, denom });
         }
@@ -467,12 +541,7 @@ pub fn decompress_to_yuv(jpeg_data: &[u8]) -> Result<YuvImage<Vec<u8>>> {
     let mut decompressor = Decompressor::new()?;
     let header = decompressor.read_header(jpeg_data)?;
     let align = 4;
-    let yuv_pixels_len = yuv_pixels_len(
-        header.width,
-        align,
-        header.height,
-        header.subsamp,
-    )?;
+    let yuv_pixels_len = yuv_pixels_len(header.width, align, header.height, header.subsamp)?;
 
     let mut yuv_image = YuvImage {
         pixels: vec![0; yuv_pixels_len],

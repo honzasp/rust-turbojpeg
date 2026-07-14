@@ -52,7 +52,6 @@ jobs:
           submodules: recursive
       - uses: Swatinem/rust-cache@v2
       - run: cargo test
-      - run: cargo test --doc
 
   examples:
     runs-on: ubuntu-26.04

@@ -21,19 +21,22 @@ jobs:
           - windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
+      - run: rustup override set ${{ matrix.toolchain }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo build
 
   lint:
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
@@ -46,7 +49,8 @@ jobs:
   test:
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
@@ -57,7 +61,8 @@ jobs:
   examples:
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable

@@ -1,5 +1,5 @@
 use std::convert::TryInto as _;
-use crate::{Image, YuvImage, YuvPlanesImage, raw};
+use crate::{Colorspace, Image, YuvImage, YuvPlanesImage, raw};
 use crate::buf::{OwnedBuf, OutputBuf};
 use crate::common::{Subsamp, Result, Error};
 use crate::handle::Handle;
@@ -68,6 +68,20 @@ impl Compressor {
     #[doc(alias = "TJPARAM_SUBSAMP")]
     pub fn set_subsamp(&mut self, subsamp: Subsamp) -> Result<()> {
         self.handle.set(raw::TJPARAM_TJPARAM_SUBSAMP, subsamp as i32 as libc::c_int)
+    }
+
+    /// Set the colorspace of the compressed JPEG images.
+    ///
+    /// Usually, this is useful where you want to set the color space
+    /// to match the pixel format of the input image,
+    /// to avoid incurring losses in fidelity due to color space conversion.
+    ///
+    /// By default, multichannel images are converted to YCbCr.
+    /// Not all pixel formats can be converted into all colorspaces:
+    /// see the [Colorspace] documentation for details.
+    #[doc(alias = "TJPARAM_COLORSPACE")]
+    pub fn set_colorspace(&mut self, colorspace: Colorspace) -> Result<()> {
+        self.handle.set(raw::TJPARAM_TJPARAM_COLORSPACE, colorspace as i32 as libc::c_int)
     }
 
     /// Enable/disable optimized baseline entropy coding.
@@ -299,8 +313,8 @@ impl Compressor {
 
     /// Compress separate YUV planes into JPEG.
     ///
-    /// This function compresses separate Y, U (Cb), and V (Cr) image planes into 
-    /// a JPEG image. This is similar to [`compress_yuv()`][Self::compress_yuv], 
+    /// This function compresses separate Y, U (Cb), and V (Cr) image planes into
+    /// a JPEG image. This is similar to [`compress_yuv()`][Self::compress_yuv],
     /// but takes separate YUV planes as input instead of interleaved YUV data.
     ///
     /// # Arguments
@@ -362,7 +376,7 @@ impl Compressor {
             image.u_stride.try_into().map_err(|_| Error::IntegerOverflow("u_stride"))?,
             image.v_stride.try_into().map_err(|_| Error::IntegerOverflow("v_stride"))?,
         ];
-        
+
         // Set subsampling from the YuvPlanesImage structure
         self.set_subsamp(image.subsamp)?;
 
@@ -450,7 +464,7 @@ impl Compressor {
 }
 
 /// Compress an image to JPEG.
-/// 
+///
 /// Uses the given quality and chrominance subsampling option and returns the JPEG data in a buffer
 /// owned by TurboJPEG. If this function does not fit your needs, please see [`Compressor`].
 ///

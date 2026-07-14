@@ -5,14 +5,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (width, height) = (768, 512);
     let mut image = Image {
         pixels: vec![0; 3 * width * height],
-        width: width,
+        width,
         pitch: 3 * width, // there is no padding between rows
-        height: height,
+        height,
         format: PixelFormat::RGB,
     };
 
     // generate the pixel values
     for y in 0..height {
+        #[allow(clippy::identity_op)]
         for x in 0..width {
             let r = if (x/32 + y/32) % 2 == 0 { 0 } else { 255 };
             let g = 255 - (x * 255 / width) as u8;

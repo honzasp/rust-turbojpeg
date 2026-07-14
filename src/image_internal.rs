@@ -6,11 +6,11 @@ use crate::common::{PixelFormat, Subsamp, Result, Error};
 /// Three variants of this type are commonly used:
 ///
 /// - `Image<&[u8]>`: immutable reference to image data (input image for compression by
-/// [`Compressor`][crate::Compressor])
+///   [`Compressor`][crate::Compressor])
 /// - `Image<&mut [u8]>`: mutable reference to image data (output image for decompression by
-/// [`Decompressor`][crate::Decompressor]).
+///   [`Decompressor`][crate::Decompressor]).
 /// - `Image<Vec<u8>>`: owned image data (you can convert it to a reference using
-/// [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
+///   [`.as_deref()`][Image::as_deref] or [`.as_deref_mut()`][Image::as_deref_mut]).
 ///
 /// Data for pixel in column `x` and row `y` is stored in `pixels` at offset `y*pitch +
 /// x*format.size()`.
@@ -175,9 +175,9 @@ impl Image<Vec<u8>> {
 /// Two variants of this type are commonly used:
 ///
 /// - `YuvImage<&mut [u8]>`: mutable reference to YUV image data (output image for decompression by
-/// [`Decompressor`][crate::Decompressor]).
+///   [`Decompressor`][crate::Decompressor]).
 /// - `YuvImage<Vec<u8>>`: owned YUV image data (you can convert it to a reference using
-/// [`.as_deref()`][YuvImage::as_deref] or [`.as_deref_mut()`][YuvImage::as_deref_mut]).
+///   [`.as_deref()`][YuvImage::as_deref] or [`.as_deref_mut()`][YuvImage::as_deref_mut]).
 ///
 /// # Image format
 ///
@@ -185,13 +185,13 @@ impl Image<Vec<u8>> {
 /// [chrominance subsampling][Self::subsamp] and [row alignment][Self::align] of the image:
 ///
 /// - [Luminance (Y) plane width][Self::y_width()] is the image width padded to the nearest
-/// multiple of the [horizontal subsampling factor][Subsamp::width()].
+///   multiple of the [horizontal subsampling factor][Subsamp::width()].
 /// - [Luminance (Y) plane height][Self::y_height()] is the image height padded to the nearest
-/// multiple of the [vertical subsampling factor][Subsamp::height()].
+///   multiple of the [vertical subsampling factor][Subsamp::height()].
 /// - [Chrominance (U and V) plane width][Self::uv_width()] is the luminance plane width divided by
-/// the horizontal subsampling factor.
+///   the horizontal subsampling factor.
 /// - [Chrominance (U and V) plane height][Self::uv_height()] is the luminance plane height divided
-/// by the vertical subsampling factor.
+///   by the vertical subsampling factor.
 /// - Each row is further padded to the nearest multiple of the [row alignment][Self::align].
 ///
 /// ## Example
@@ -318,7 +318,7 @@ impl<T> YuvImage<T> {
 ///
 /// Returns an error on integer overflow. You can just `.unwrap()` the result if you don't care
 /// about this edge case.
-/// 
+///
 /// # Example
 ///
 /// ```

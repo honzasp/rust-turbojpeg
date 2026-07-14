@@ -126,12 +126,13 @@ impl Transform {
 }
 
 /// Transform operation.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[doc(alias = "TJXOP")]
 #[repr(u32)]
 #[non_exhaustive]
 pub enum TransformOp {
     /// No transformation (noop).
+    #[default]
     #[doc(alias = "TJXOP_NONE")]
     None = raw::TJXOP_TJXOP_NONE,
 
@@ -183,12 +184,6 @@ pub enum TransformOp {
     Rot270 = raw::TJXOP_TJXOP_ROT270,
 }
 
-impl Default for TransformOp {
-    fn default() -> Self {
-        TransformOp::None
-    }
-}
-
 /// Transform cropping region.
 ///
 /// The [`x`][Self::x] and [`y`][Self::y] position of the region must be aligned on MCU boundaries.
@@ -234,7 +229,7 @@ impl Transformer {
     /// // initialize the transformer
     /// let mut transformer = turbojpeg::Transformer::new()?;
     ///
-    /// // define the transformation: flip vertically, trim partial MCU blocks on the bottom edge 
+    /// // define the transformation: flip vertically, trim partial MCU blocks on the bottom edge
     /// let mut transform = turbojpeg::Transform::op(turbojpeg::TransformOp::Vflip);
     /// transform.trim = true;
     ///

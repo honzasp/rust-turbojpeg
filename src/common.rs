@@ -119,7 +119,6 @@ impl PixelFormat {
     }
 }
 
-
 /// Chrominance subsampling options.
 ///
 /// When pixels are converted from RGB to YCbCr or from CMYK to YCCK as part of the JPEG
@@ -315,7 +314,6 @@ impl Subsamp {
     }
 }
 
-
 /// JPEG colorspaces.
 #[doc(alias = "TJCS")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -387,7 +385,6 @@ impl Colorspace {
     }
 }
 
-
 /// Specialized `Result` type for TurboJPEG.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -428,4 +425,3 @@ pub enum Error {
     #[error("arguments to a TurboJPEG function were out of bounds")]
     OutOfBounds,
 }
-

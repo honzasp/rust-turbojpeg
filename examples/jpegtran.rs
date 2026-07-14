@@ -1,6 +1,6 @@
-use std::fs;
-use anyhow::{Result, Context as _, bail};
+use anyhow::{bail, Context as _, Result};
 use clap::clap_app;
+use std::fs;
 
 use turbojpeg::{Transform, TransformOp, Transformer};
 
@@ -31,7 +31,8 @@ fn main() -> Result<()> {
             "Convert the image into grayscale")
         (@arg COPY_NONE: --("copy-none") ...
             "Do not copy any extra markers (such as EXIF data)")
-    ).get_matches();
+    )
+    .get_matches();
 
     let mut transform = Transform::default();
     if let Some(direction) = args.value_of("FLIP") {
@@ -66,11 +67,11 @@ fn main() -> Result<()> {
 
     // TODO: crop
 
-    let jpeg_data = fs::read(args.value_of("INPUT").unwrap())
-        .context("could not read input image")?;
-    let mut transformer = Transformer::new()
-        .context("could not create transformer")?;
-    let transformed_data = transformer.transform_to_owned(&transform, &jpeg_data)
+    let jpeg_data =
+        fs::read(args.value_of("INPUT").unwrap()).context("could not read input image")?;
+    let mut transformer = Transformer::new().context("could not create transformer")?;
+    let transformed_data = transformer
+        .transform_to_owned(&transform, &jpeg_data)
         .context("could not transform JPEG data")?;
     fs::write(args.value_of("OUTPUT").unwrap(), &transformed_data)
         .context("could not write output image")?;

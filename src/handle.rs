@@ -1,6 +1,6 @@
-use std::ffi::CStr;
-use crate::common::{Result, Error};
+use crate::common::{Error, Result};
 use crate::raw;
+use std::ffi::CStr;
 
 #[derive(Debug)]
 pub struct Handle {
@@ -12,7 +12,7 @@ impl Handle {
         let ptr = unsafe { raw::tj3Init(init as libc::c_int) };
         let mut this = Self { ptr };
         if this.ptr.is_null() {
-            return Err(this.get_error())
+            return Err(this.get_error());
         }
         Ok(this)
     }
@@ -29,7 +29,7 @@ impl Handle {
     pub fn set(&mut self, param: raw::TJPARAM, value: libc::c_int) -> Result<()> {
         let res = unsafe { raw::tj3Set(self.ptr, param as libc::c_int, value) };
         if res != 0 {
-            return Err(self.get_error())
+            return Err(self.get_error());
         }
         Ok(())
     }
@@ -37,7 +37,7 @@ impl Handle {
     pub fn set_scaling_factor(&mut self, scaling_factor: raw::tjscalingfactor) -> Result<()> {
         let res = unsafe { raw::tj3SetScalingFactor(self.ptr, scaling_factor) };
         if res != 0 {
-            return Err(self.get_error())
+            return Err(self.get_error());
         }
         Ok(())
     }
@@ -49,6 +49,8 @@ impl Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        unsafe { raw::tj3Destroy(self.ptr); }
+        unsafe {
+            raw::tj3Destroy(self.ptr);
+        }
     }
 }

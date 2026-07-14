@@ -1,8 +1,8 @@
-use std::ptr;
-use std::convert::TryInto as _;
-use crate::buf::{OwnedBuf, OutputBuf};
+use crate::buf::{OutputBuf, OwnedBuf};
 use crate::common::{Error, Result};
 use crate::handle::Handle;
+use std::convert::TryInto as _;
+use std::ptr;
 
 /// Transforms JPEG images without recompression.
 ///
@@ -121,7 +121,10 @@ impl Transform {
     /// transform.progressive = true;
     /// ```
     pub fn op(op: TransformOp) -> Transform {
-        Transform { op, ..Transform::default() }
+        Transform {
+            op,
+            ..Transform::default()
+        }
     }
 }
 
@@ -252,25 +255,49 @@ impl Transformer {
         output: &mut OutputBuf,
     ) -> Result<()> {
         let mut options = 0;
-        if transform.perfect { options |= raw::TJXOPT_PERFECT }
-        if transform.trim { options |= raw::TJXOPT_TRIM }
-        if transform.gray { options |= raw::TJXOPT_GRAY }
-        if transform.progressive { options |= raw::TJXOPT_PROGRESSIVE }
-        if transform.optimize { options |= raw::TJXOPT_OPTIMIZE }
-        if transform.copy_none { options |= raw::TJXOPT_COPYNONE }
+        if transform.perfect {
+            options |= raw::TJXOPT_PERFECT
+        }
+        if transform.trim {
+            options |= raw::TJXOPT_TRIM
+        }
+        if transform.gray {
+            options |= raw::TJXOPT_GRAY
+        }
+        if transform.progressive {
+            options |= raw::TJXOPT_PROGRESSIVE
+        }
+        if transform.optimize {
+            options |= raw::TJXOPT_OPTIMIZE
+        }
+        if transform.copy_none {
+            options |= raw::TJXOPT_COPYNONE
+        }
 
         let mut region = raw::tjregion {
-            x: 0, y: 0,
-            w: 0, h: 0,
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 0,
         };
         if let Some(crop) = transform.crop {
-            region.x = crop.x.try_into().map_err(|_| Error::IntegerOverflow("crop.x"))?;
-            region.y = crop.y.try_into().map_err(|_| Error::IntegerOverflow("crop.y"))?;
+            region.x = crop
+                .x
+                .try_into()
+                .map_err(|_| Error::IntegerOverflow("crop.x"))?;
+            region.y = crop
+                .y
+                .try_into()
+                .map_err(|_| Error::IntegerOverflow("crop.y"))?;
             if let Some(crop_w) = crop.width {
-                region.w = crop_w.try_into().map_err(|_| Error::IntegerOverflow("crop.width"))?;
+                region.w = crop_w
+                    .try_into()
+                    .map_err(|_| Error::IntegerOverflow("crop.width"))?;
             }
             if let Some(crop_h) = crop.height {
-                region.h = crop_h.try_into().map_err(|_| Error::IntegerOverflow("crop.height"))?;
+                region.h = crop_h
+                    .try_into()
+                    .map_err(|_| Error::IntegerOverflow("crop.height"))?;
             }
             options |= raw::TJXOPT_CROP;
         }
@@ -291,17 +318,20 @@ impl Transformer {
         let res = unsafe {
             raw::tj3Transform(
                 self.handle.as_ptr(),
-                jpeg_data.as_ptr(), jpeg_data.len() as raw::size_t,
-                1, &mut output.ptr, &mut output_len,
+                jpeg_data.as_ptr(),
+                jpeg_data.len() as raw::size_t,
+                1,
+                &mut output.ptr,
+                &mut output_len,
                 &transform,
             )
         };
         output.len = output_len as usize;
         if res != 0 {
-            return Err(self.handle.get_error())
+            return Err(self.handle.get_error());
         } else if output.ptr.is_null() {
             output.len = 0;
-            return Err(Error::Null)
+            return Err(Error::Null);
         }
 
         Ok(())
@@ -310,7 +340,11 @@ impl Transformer {
     /// Transforms the `image` into an owned buffer.
     ///
     /// This method automatically allocates the memory and avoids needless copying.
-    pub fn transform_to_owned(&mut self, transform: &Transform, jpeg_data: &[u8]) -> Result<OwnedBuf> {
+    pub fn transform_to_owned(
+        &mut self,
+        transform: &Transform,
+        jpeg_data: &[u8],
+    ) -> Result<OwnedBuf> {
         let mut buf = OutputBuf::new_owned();
         self.transform(transform, jpeg_data, &mut buf)?;
         Ok(buf.into_owned())
@@ -346,7 +380,6 @@ impl Transformer {
         self.transform(transform, jpeg_data, &mut buf)?;
         Ok(buf.len())
     }
-
 }
 
 /// Losslessly transform a JPEG image without recompression.

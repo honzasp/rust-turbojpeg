@@ -1,7 +1,7 @@
-use std::{ptr, slice};
-use std::convert::{AsRef, AsMut};
+use std::convert::{AsMut, AsRef};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use std::{ptr, slice};
 
 /// Owned buffer with JPEG data.
 ///
@@ -16,21 +16,32 @@ pub struct OwnedBuf {
 
 impl Deref for OwnedBuf {
     type Target = [u8];
-    fn deref(&self) -> &[u8] { unsafe { deref(self.ptr, self.len) } }
+    fn deref(&self) -> &[u8] {
+        unsafe { deref(self.ptr, self.len) }
+    }
 }
 impl DerefMut for OwnedBuf {
-    fn deref_mut(&mut self) -> &mut [u8] { unsafe { deref_mut(self.ptr, self.len) } }
+    fn deref_mut(&mut self) -> &mut [u8] {
+        unsafe { deref_mut(self.ptr, self.len) }
+    }
 }
 impl AsRef<[u8]> for OwnedBuf {
-    fn as_ref(&self) -> &[u8] { self.deref() }
+    fn as_ref(&self) -> &[u8] {
+        self.deref()
+    }
 }
 impl AsMut<[u8]> for OwnedBuf {
-    fn as_mut(&mut self) -> &mut [u8] { self.deref_mut() }
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.deref_mut()
+    }
 }
 
 impl Default for OwnedBuf {
     fn default() -> Self {
-        Self { ptr: ptr::null_mut(), len: 0 }
+        Self {
+            ptr: ptr::null_mut(),
+            len: 0,
+        }
     }
 }
 
@@ -48,7 +59,10 @@ impl OwnedBuf {
     pub fn allocate(len: usize) -> OwnedBuf {
         let ptr = unsafe { raw::tj3Alloc(len as raw::size_t) };
         assert!(!ptr.is_null(), "tj3Alloc() returned null");
-        OwnedBuf { ptr: ptr as *mut u8, len }
+        OwnedBuf {
+            ptr: ptr as *mut u8,
+            len,
+        }
     }
 
     /// Creates a new buffer copied from a slice.
@@ -75,8 +89,6 @@ impl Drop for OwnedBuf {
     }
 }
 
-
-
 /// Output buffer for JPEG data (borrowed or owned).
 ///
 /// When compressing or transforming images, we need a memory buffer to store the compressed JPEG
@@ -102,18 +114,25 @@ pub struct OutputBuf<'a> {
 
 impl<'a> Deref for OutputBuf<'a> {
     type Target = [u8];
-    fn deref(&self) -> &[u8] { unsafe { deref(self.ptr, self.len) } }
+    fn deref(&self) -> &[u8] {
+        unsafe { deref(self.ptr, self.len) }
+    }
 }
 impl<'a> DerefMut for OutputBuf<'a> {
-    fn deref_mut(&mut self) -> &mut [u8] { unsafe { deref_mut(self.ptr, self.len) } }
+    fn deref_mut(&mut self) -> &mut [u8] {
+        unsafe { deref_mut(self.ptr, self.len) }
+    }
 }
 impl<'a> AsRef<[u8]> for OutputBuf<'a> {
-    fn as_ref(&self) -> &[u8] { self.deref() }
+    fn as_ref(&self) -> &[u8] {
+        self.deref()
+    }
 }
 impl<'a> AsMut<[u8]> for OutputBuf<'a> {
-    fn as_mut(&mut self) -> &mut [u8] { self.deref_mut() }
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.deref_mut()
+    }
 }
-
 
 impl<'a> OutputBuf<'a> {
     /// Converts a slice into a borrowed `OutputBuf`.
@@ -163,14 +182,14 @@ impl<'a> OutputBuf<'a> {
     /// If `self` is owned, this is a trivial operation, otherwise we must copy the data from the
     /// borrowed slice into a new owned buffer.
     pub fn into_owned(mut self) -> OwnedBuf {
-        let OutputBuf { ptr, len, is_owned, .. } = self;
+        let OutputBuf {
+            ptr, len, is_owned, ..
+        } = self;
         self.ptr = ptr::null_mut(); // do not free the pointer in OutputBuf destructor
         if is_owned {
             OwnedBuf { ptr, len }
         } else {
-            unsafe {
-                OwnedBuf::copy_from_slice(slice::from_raw_parts(ptr, len))
-            }
+            unsafe { OwnedBuf::copy_from_slice(slice::from_raw_parts(ptr, len)) }
         }
     }
 }

@@ -93,10 +93,10 @@
 #![warn(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub extern crate turbojpeg_sys as raw;
-pub extern crate libc;
 #[cfg(feature = "image")]
 pub extern crate image as image;
+pub extern crate libc;
+pub extern crate turbojpeg_sys as raw;
 
 mod buf;
 mod common;
@@ -105,14 +105,18 @@ mod decompress;
 mod handle;
 mod image_internal;
 mod transform;
-pub use self::buf::{OwnedBuf, OutputBuf};
-pub use self::common::{PixelFormat, Subsamp, Colorspace, Result, Error};
-pub use self::compress::{Compressor, compress, compress_yuv, compress_yuv_planes, compressed_buf_len};
-pub use self::decompress::{Decompressor, DecompressHeader, ScalingFactor, decompress, read_header, decompress_to_yuv};
-pub use self::image_internal::{Image, YuvImage, YuvPlanesImage, yuv_pixels_len, yuv_plane_len};
-pub use self::transform::{Transformer, Transform, TransformOp, TransformCrop, transform};
+pub use self::buf::{OutputBuf, OwnedBuf};
+pub use self::common::{Colorspace, Error, PixelFormat, Result, Subsamp};
+pub use self::compress::{
+    compress, compress_yuv, compress_yuv_planes, compressed_buf_len, Compressor,
+};
+pub use self::decompress::{
+    decompress, decompress_to_yuv, read_header, DecompressHeader, Decompressor, ScalingFactor,
+};
+pub use self::image_internal::{yuv_pixels_len, yuv_plane_len, Image, YuvImage, YuvPlanesImage};
+pub use self::transform::{transform, Transform, TransformCrop, TransformOp, Transformer};
 
 #[cfg(feature = "image")]
 mod image_rs;
 #[cfg(feature = "image")]
-pub use self::image_rs::{JpegPixel, compress_image, decompress_image};
+pub use self::image_rs::{compress_image, decompress_image, JpegPixel};

@@ -1,0 +1,53 @@
+on: [push, pull_request]
+name: "CI"
+
+defaults:
+    run:
+        shell: bash
+
+jobs:
+    build:
+        strategy:
+            fail-fast: false
+            matrix:
+                toolchain: ["stable", "1.81", "beta", "nightly"]
+                os: [ubuntu-latest, macos-latest, windows-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: dtolnay/rust-toolchain@master
+              with:
+                  toolchain: ${{ matrix.toolchain }}
+            - uses: Swatinem/rust-cache@v2
+            - run: cargo build
+
+    lint:
+        runs-on: ubuntu-26.04
+        steps:
+            - uses: actions/checkout@v5
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: rustfmt, clippy
+            - uses: Swatinem/rust-cache@v1
+            - run: cargo clippy
+            - run: cargo fmt --check
+
+    test:
+        runs-on: ubuntu-26.04
+        steps:
+            - uses: actions/checkout@v5
+            - uses: dtolnay/rust-toolchain@stable
+            - uses: Swatinem/rust-cache@v2
+            - run: cargo test
+            - run: cargo test --doc
+
+    examples:
+        runs-on: ubuntu-26.04
+        steps:
+            - uses: actions/checkout@v5
+            - uses: dtolnay/rust-toolchain@stable
+            - uses: Swatinem/rust-cache@v2
+            - run: cargo run --example compressor
+            - run: cargo run --example decompressor
+            - run: cargo run --example downscale
+            - run: cargo run --example image

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Add option to set colorspace during compression ([#40](https://github.com/honzasp/rust-turbojpeg/pull/40))
+    - Add `Compressor::set_colorspace()`
+- Add support for progressive and arithmetic encoding and fast chrominance upsampling
+    - Add `Compressor::set_progressive()`
+    - Add `Compressor::set_arithmetic()`
+    - Add `DecompressHeader::is_progressive`
+    - Add `DecompressHeader::is_arithmetic`
+    - Add `Decompressor::set_fast_upsample()`
+    - Add `Decompressor::set_scan_limit()`
+    - Add `Transform::arithmetic`
+
 ## 1.4.0 -- 2026-01-23
 
 - Add compression from YUV plane images ([#36](https://github.com/honzasp/rust-turbojpeg/pull/36))

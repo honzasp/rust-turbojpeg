@@ -23,15 +23,32 @@ unsafe impl Send for Decompressor {}
 #[non_exhaustive]
 pub struct DecompressHeader {
     /// Width of the image in pixels (number of columns).
+    #[doc(alias = "TJPARAM_JPEGWIDTH")]
     pub width: usize,
+
     /// Height of the image in pixels (number of rows).
+    #[doc(alias = "TJPARAM_JPEGHEIGHT")]
     pub height: usize,
+
     /// Chrominance subsampling that is used in the compressed image.
+    #[doc(alias = "TJPARAM_SUBSAMP")]
     pub subsamp: Subsamp,
+
     /// Colorspace of the compressed image.
+    #[doc(alias = "TJPARAM_COLORSPACE")]
     pub colorspace: Colorspace,
+
     /// Is the image lossless JPEG?
+    #[doc(alias = "TJPARAM_LOSSLESS")]
     pub is_lossless: bool,
+
+    /// Is the image a progressive JPEG?
+    #[doc(alias = "TJPARAM_PROGRESSIVE")]
+    pub is_progressive: bool,
+
+    /// Does the image use arithmetic entropy coding (`true`) or Huffman entropy coding (`false`)?
+    #[doc(alias = "TJPARAM_ARITHMETIC")]
+    pub is_arithmetic: bool,
 }
 
 /// Fractional scaling factor.
@@ -178,7 +195,12 @@ impl Decompressor {
         let subsamp = Subsamp::from_int(self.handle.get(raw::TJPARAM_TJPARAM_SUBSAMP))?;
         let colorspace = Colorspace::from_int(self.handle.get(raw::TJPARAM_TJPARAM_COLORSPACE))?;
         let is_lossless = self.handle.get(raw::TJPARAM_TJPARAM_LOSSLESS) != 0;
-        Ok(DecompressHeader { width, height, subsamp, colorspace, is_lossless })
+        let is_progressive = self.handle.get(raw::TJPARAM_TJPARAM_PROGRESSIVE) != 0;
+        let is_arithmetic = self.handle.get(raw::TJPARAM_TJPARAM_ARITHMETIC) != 0;
+        Ok(DecompressHeader {
+            width, height, subsamp, colorspace,
+            is_lossless, is_progressive, is_arithmetic,
+        })
     }
 
     /// Set scaling factor for subsequent decompression operations.
@@ -231,6 +253,50 @@ impl Decompressor {
     /// Get the scaling factor set by [`set_scaling_factor()`][Self::set_scaling_factor()].
     pub fn scaling_factor(&self) -> ScalingFactor {
         self.scaling_factor
+    }
+
+    /// Enable/disable the faster chrominance upsampling algorithm.
+    ///
+    /// When disabled (default), the decompressor uses smooth upsampling when decompressing an image
+    /// that was encoded with chrominance subsampling. This reduces upsampling artifacts in the
+    /// output image.
+    ///
+    /// When enabled, the decompressor will use the fastest available upsampling algorithm.
+    pub fn set_fast_upsample(&mut self, fast_upsample: bool) -> Result<()> {
+        self.handle.set(raw::TJPARAM_TJPARAM_FASTUPSAMPLE, fast_upsample as libc::c_int)
+    }
+
+    /// Set the limit on the number of allowed progressive scans in the decoded image.
+    ///
+    /// The primary purpose of this method is to guard against an exploit of progressive JPEG
+    /// encoding described in [this
+    /// report](https://libjpeg-turbo.org/pmwiki/uploads/About/TwoIssueswiththeJPEGStandard.pdf)
+    ///
+    /// The default value is 0, which means no limit.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // compress an image with progressive encoding
+    /// let mut image = turbojpeg::Image::mandelbrot(1000, 1000, turbojpeg::PixelFormat::RGB);
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    /// compressor.set_progressive(true)?;
+    /// compressor.set_quality(99)?;
+    /// let jpeg_data = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// // decompressing with low scan limit fails
+    /// let mut decompressor = turbojpeg::Decompressor::new()?;
+    /// decompressor.set_scan_limit(1)?;
+    /// assert!(decompressor.decompress(&jpeg_data, image.as_deref_mut()).is_err());
+    ///
+    /// // but it succeeds when the scan limit is sufficient
+    /// decompressor.set_scan_limit(100)?;
+    /// assert!(decompressor.decompress(&jpeg_data, image.as_deref_mut()).is_ok());
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    pub fn set_scan_limit(&mut self, scan_limit: u32) -> Result<()> {
+        let scan_limit = scan_limit.try_into().map_err(|_| Error::IntegerOverflow("scan limit"))?;
+        self.handle.set(raw::TJPARAM_TJPARAM_SCANLIMIT, scan_limit)
     }
 
     /// Decompress a JPEG image in `jpeg_data` into `output`.

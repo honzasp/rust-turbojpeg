@@ -25,6 +25,8 @@ fn main() -> Result<()> {
             "Discard partial blocks that cannot be transformed")
         (@arg PROGRESSIVE: --progressive ...
             "Use progressive entropy coding")
+        (@arg ARITHMETIC: --arithmetic ...
+            "Use arithmetic entropy coding")
         (@arg OPTIMIZE: --optimize ...
             "Use optimized baseline entropy coding")
         (@arg GRAYSCALE: --grayscale ...
@@ -61,6 +63,7 @@ fn main() -> Result<()> {
     transform.perfect = args.is_present("PERFECT");
     transform.trim = args.is_present("TRIM");
     transform.progressive = args.is_present("PROGRESSIVE");
+    transform.arithmetic = args.is_present("ARITHMETIC");
     transform.gray = args.is_present("GRAYSCALE");
     transform.copy_none = args.is_present("COPY_NONE");
 

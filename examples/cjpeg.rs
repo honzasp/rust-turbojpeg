@@ -13,6 +13,10 @@ fn main() -> Result<()> {
             "Quality of the output JPEG file (1 is worst, 100 is best)")
         (@arg LOSSLESS: --lossless
             "Create lossless JPEG file")
+        (@arg PROGRESSIVE: --progressive
+            "Create a progressive JPEG file")
+        (@arg ARITHMETIC: --arithmetic
+            "Use arithmetic entropy coding")
     )
     .get_matches();
 
@@ -34,9 +38,10 @@ fn main() -> Result<()> {
         compressor.set_quality(quality)?;
     }
 
-    if args.is_present("LOSSLESS") {
-        compressor.set_lossless(true)?;
-    }
+    compressor.set_lossless(args.is_present("LOSSLESS"))?;
+    compressor.set_progressive(args.is_present("PROGRESSIVE"))?;
+    compressor.set_arithmetic(args.is_present("ARITHMETIC"))?;
+
     let image_jpeg = compressor.compress_to_owned(Image {
         pixels: image_flat.as_slice(),
         width: extents.1,

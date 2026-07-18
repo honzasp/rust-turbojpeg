@@ -166,6 +166,68 @@ impl Compressor {
         self.handle.set(raw::TJPARAM_TJPARAM_OPTIMIZE, optimize as libc::c_int)
     }
 
+    /// Enable/disable progressive compression.
+    ///
+    /// By default, progressive compression is disabled. When enabled, the DCT coefficients will be
+    /// encoded in multiple "scans": a low-quality version of the image represented with
+    /// low-frequency DCT coefficients is encoded first, and subsequent scans refine it with
+    /// higher-frequency DCT coefficients.
+    ///
+    /// Progressive encoding typically achieves higher compression ratios at the cost of
+    /// considerably slower compression and decompression.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let image = turbojpeg::Image::mandelbrot(500, 500, turbojpeg::PixelFormat::RGB);
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    ///
+    /// compressor.set_progressive(false)?;
+    /// let single_scan = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// compressor.set_progressive(true)?;
+    /// let progressive = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// assert!(progressive.len() < single_scan.len());
+    /// let progressive_header = turbojpeg::read_header(&progressive)?;
+    /// assert!(progressive_header.is_progressive);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    #[doc(alias = "TJPARAM_PROGRESSIVE")]
+    pub fn set_progressive(&mut self, progressive: bool) -> Result<()> {
+        self.handle.set(raw::TJPARAM_TJPARAM_PROGRESSIVE, progressive as libc::c_int)
+    }
+
+    /// Enable/disable arithmetic entropy coding.
+    ///
+    /// By default, arithmetic entropy coding is disabled and Huffman entropy coding is used
+    /// instead.
+    ///
+    /// Arithmetic entropy coding improves the compression ratio but it makes the compression and
+    /// decompression considerably slower.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let image = turbojpeg::Image::mandelbrot(500, 500, turbojpeg::PixelFormat::RGB);
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    ///
+    /// compressor.set_arithmetic(false)?;
+    /// let huffman = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// compressor.set_arithmetic(true)?;
+    /// let arithmetic = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// assert!(arithmetic.len() < huffman.len());
+    /// let arithmetic_header = turbojpeg::read_header(&arithmetic)?;
+    /// assert!(arithmetic_header.is_arithmetic);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    #[doc(alias = "TJPARAM_ARITHMETIC")]
+    pub fn set_arithmetic(&mut self, arithmetic: bool) -> Result<()> {
+        self.handle.set(raw::TJPARAM_TJPARAM_ARITHMETIC, arithmetic as libc::c_int)
+    }
+
     /// Compresses the `image` into `output` buffer.
     ///
     /// This is the main compression method, which gives you full control of the output buffer. If

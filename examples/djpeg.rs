@@ -10,6 +10,8 @@ fn main() -> Result<()> {
         (@arg INPUT: <input> "Input JPEG file")
         (@arg OUTPUT: <output> "Output image file")
         (@arg SCALE: -s --scale [scale] "Apply a scaling factor (such as 7/8)")
+        (@arg FAST_UPSAMPLE: --("fast-upsample") "Use the fastest chrominance upsampling")
+        (@arg SCAN_LIMIT: --("scan-limit") [scan_limit] "Set a limit on the number of progressive scans")
     ).get_matches();
 
     let image_jpeg = fs::read(args.value_of("INPUT").unwrap())?;
@@ -27,6 +29,11 @@ fn main() -> Result<()> {
 
     let mut decompressor = Decompressor::new()?;
     decompressor.set_scaling_factor(scaling)?;
+    decompressor.set_fast_upsample(args.is_present("FAST_UPSAMPLE"))?;
+    decompressor.set_scan_limit(match args.value_of("SCAN_LIMIT") {
+        Some(limit) => limit.parse()?,
+        None => 0,
+    })?;
 
     let header = decompressor.read_header(&image_jpeg)?;
     let scaled = header.scaled(scaling);

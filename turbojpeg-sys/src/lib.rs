@@ -3,6 +3,8 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 #![allow(deref_nullptr)]
+#![allow(rustdoc::broken_intra_doc_links)]
+
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[cfg(test)]

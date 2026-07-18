@@ -52,6 +52,30 @@ impl Compressor {
     }
 
     /// Enable/disable lossless compression.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let original_image = turbojpeg::Image::mandelbrot(250, 330, turbojpeg::PixelFormat::RGB);
+    ///
+    /// // compress the image with lossless compression
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    /// compressor.set_lossless(true)?;
+    /// let jpeg_data = compressor.compress_to_vec(original_image.as_deref())?;
+    ///
+    /// // the decompressed image is exactly the same as the original image
+    /// let decompressed_image = turbojpeg::decompress(&jpeg_data, turbojpeg::PixelFormat::RGB)?;
+    /// # assert_eq!(decompressed_image.width, 250);
+    /// # assert_eq!(decompressed_image.height, 330);
+    /// # assert_eq!(decompressed_image.format, turbojpeg::PixelFormat::RGB);
+    /// for y in 0..330 {
+    ///     let original_pixels = &original_image.pixels[y * original_image.pitch..][..750];
+    ///     let decompressed_pixels = &decompressed_image.pixels[y * decompressed_image.pitch..][..750];
+    ///     assert_eq!(original_pixels, decompressed_pixels);
+    /// }
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     #[doc(alias = "TJPARAM_LOSSLESS")]
     pub fn set_lossless(&mut self, enabled: bool) -> Result<()> {
         self.handle
@@ -65,6 +89,23 @@ impl Compressor {
     ///
     /// When compressing YUV images, the level of chrominance subsampling is set from the image,
     /// and the value set by this method is overriden.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let image = turbojpeg::Image::mandelbrot(300, 300, turbojpeg::PixelFormat::RGB);
+    ///
+    /// // compress the image with 2x2 chrominance subsampling
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    /// compressor.set_subsamp(turbojpeg::Subsamp::Sub2x2)?;
+    /// let jpeg_data = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// // the compressed image has the 2x2 chrominance subsampling
+    /// let header = turbojpeg::read_header(&jpeg_data)?;
+    /// assert_eq!(header.subsamp, turbojpeg::Subsamp::Sub2x2);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     #[doc(alias = "TJPARAM_SUBSAMP")]
     pub fn set_subsamp(&mut self, subsamp: Subsamp) -> Result<()> {
         self.handle.set(raw::TJPARAM_TJPARAM_SUBSAMP, subsamp as i32 as libc::c_int)
@@ -72,13 +113,28 @@ impl Compressor {
 
     /// Set the colorspace of the compressed JPEG images.
     ///
-    /// Usually, this is useful where you want to set the color space
-    /// to match the pixel format of the input image,
-    /// to avoid incurring losses in fidelity due to color space conversion.
+    /// Usually, this is useful where you want to set the color space to match the pixel format of
+    /// the input image, to avoid incurring losses in fidelity due to color space conversion.
     ///
-    /// By default, multichannel images are converted to YCbCr.
-    /// Not all pixel formats can be converted into all colorspaces:
-    /// see the [Colorspace] documentation for details.
+    /// By default, multichannel images are converted to YCbCr. Not all pixel formats can be
+    /// converted into all colorspaces: see the [Colorspace] documentation for details.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let image = turbojpeg::Image::mandelbrot(300, 300, turbojpeg::PixelFormat::RGB);
+    ///
+    /// // compress the image with RGB colorspace
+    /// let mut compressor = turbojpeg::Compressor::new()?;
+    /// compressor.set_colorspace(turbojpeg::Colorspace::RGB)?;
+    /// let jpeg_data = compressor.compress_to_vec(image.as_deref())?;
+    ///
+    /// // the compressed image has the RGB colorspace
+    /// let header = turbojpeg::read_header(&jpeg_data)?;
+    /// assert_eq!(header.colorspace, turbojpeg::Colorspace::RGB);
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     #[doc(alias = "TJPARAM_COLORSPACE")]
     pub fn set_colorspace(&mut self, colorspace: Colorspace) -> Result<()> {
         self.handle.set(raw::TJPARAM_TJPARAM_COLORSPACE, colorspace as i32 as libc::c_int)

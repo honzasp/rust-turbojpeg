@@ -1,6 +1,6 @@
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use turbojpeg::{Compressor, Image, PixelFormat};
+use turbojpeg::{Compressor, Image, PixelFormat};
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // prepare the pixel data
     let (width, height) = (768, 512);
     let mut image = Image {
@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // compress the Image to a Vec<u8> of JPEG data
     let jpeg_data = compressor.compress_to_vec(image.as_deref())?;
 
-    std::fs::write("image.jpg", jpeg_data)?;
+    std::fs::write("examples/checkerboard.tmp.jpg", jpeg_data)?;
     Ok(())
 }
 

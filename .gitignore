@@ -4,4 +4,4 @@
 Session.vim
 *~
 
-tmp/
+*.tmp.jpg

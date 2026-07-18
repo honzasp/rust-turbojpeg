@@ -1,8 +1,8 @@
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use turbojpeg::{Decompressor, Image, PixelFormat, ScalingFactor};
+use turbojpeg::{Decompressor, Image, PixelFormat, ScalingFactor};
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get the JPEG data
-    let jpeg_data = std::fs::read("image.jpg")?;
+    let jpeg_data = std::fs::read("examples/parrots.jpg")?;
 
     // initialize a Decompressor
     let mut decompressor = Decompressor::new()?;
@@ -41,6 +41,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // compress the Image to a Vec<u8> of JPEG data
     let jpeg_data = compressor.compress_to_vec(image.as_deref())?;
 
-    std::fs::write("downscaled.jpg", jpeg_data)?;
+    std::fs::write("examples/downscaled.tmp.jpg", jpeg_data)?;
     Ok(())
 }

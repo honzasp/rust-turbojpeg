@@ -1,8 +1,8 @@
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use turbojpeg::{Decompressor, Image, PixelFormat};
+use turbojpeg::{Decompressor, Image, PixelFormat};
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get the JPEG data
-    let jpeg_data = std::fs::read("image.jpg")?;
+    let jpeg_data = std::fs::read("examples/parrots.jpg")?;
 
     // initialize a Decompressor
     let mut decompressor = Decompressor::new()?;

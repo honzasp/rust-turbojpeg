@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 1.5.0 -- 2026-07-25
 
 - Add option to set colorspace during compression ([#40](https://github.com/honzasp/rust-turbojpeg/pull/40))

@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.5.1 -- 2026-07-25
+
+- Update `Cargo.toml` to fix the documentation build on docs.rs
 
 ## 1.5.0 -- 2026-07-25
 

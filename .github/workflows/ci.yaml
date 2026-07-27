@@ -66,6 +66,7 @@ jobs:
   test:
     runs-on: ubuntu-26.04
     steps:
+      - run: sudo apt update && sudo apt install -y nasm
       - uses: actions/checkout@v7
         with:
           submodules: recursive

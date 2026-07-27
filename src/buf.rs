@@ -146,6 +146,11 @@ impl<'a> OutputBuf<'a> {
         self.len
     }
 
+    /// Whether the buffer is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Converts this buffer into an owned buffer.
     ///
     /// If `self` is owned, this is a trivial operation, otherwise we must copy the data from the

@@ -14,9 +14,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // prepare the destination image
     let mut image = Image {
         pixels: vec![0; 3 * width * height],
-        width: width,
+        width,
         pitch: 3 * width, // we use no padding between rows
-        height: height,
+        height,
         format: PixelFormat::RGB,
     };
 

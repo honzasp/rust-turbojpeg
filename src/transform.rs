@@ -135,9 +135,11 @@ impl Transform {
 #[doc(alias = "TJXOP")]
 #[repr(u32)]
 #[non_exhaustive]
+#[derive(Default)]
 pub enum TransformOp {
     /// No transformation (noop).
     #[doc(alias = "TJXOP_NONE")]
+    #[default]
     None = raw::TJXOP_TJXOP_NONE,
 
     /// Flip (mirror) image horizontally.
@@ -188,11 +190,6 @@ pub enum TransformOp {
     Rot270 = raw::TJXOP_TJXOP_ROT270,
 }
 
-impl Default for TransformOp {
-    fn default() -> Self {
-        TransformOp::None
-    }
-}
 
 /// Transform cropping region.
 ///
@@ -239,7 +236,7 @@ impl Transformer {
     /// // initialize the transformer
     /// let mut transformer = turbojpeg::Transformer::new()?;
     ///
-    /// // define the transformation: flip vertically, trim partial MCU blocks on the bottom edge 
+    /// // define the transformation: flip vertically, trim partial MCU blocks on the bottom edge
     /// let mut transform = turbojpeg::Transform::op(turbojpeg::TransformOp::Vflip);
     /// transform.trim = true;
     ///
@@ -286,7 +283,7 @@ impl Transformer {
             options |= raw::TJXOPT_CROP;
         }
 
-        let mut transform = raw::tjtransform {
+        let transform = raw::tjtransform {
             r: region,
             op: transform.op as libc::c_int,
             options: options as libc::c_int,
@@ -304,7 +301,7 @@ impl Transformer {
                 self.handle.as_ptr(),
                 jpeg_data.as_ptr(), jpeg_data.len() as raw::size_t,
                 1, &mut output.ptr, &mut output_len,
-                &mut transform,
+                &transform,
             )
         };
         output.len = output_len as usize;

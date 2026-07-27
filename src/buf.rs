@@ -28,6 +28,12 @@ impl AsMut<[u8]> for OwnedBuf {
     fn as_mut(&mut self) -> &mut [u8] { self.deref_mut() }
 }
 
+impl Default for OwnedBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OwnedBuf {
     /// Creates an empty buffer.
     pub fn new() -> OwnedBuf {

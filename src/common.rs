@@ -205,7 +205,7 @@ pub enum Subsamp {
     ///
     /// - decompressed into planar YUV images,
     /// - losslessly transformed if [`Transform::crop`][crate::Transform::crop] is specified and
-    /// [`Transform::gray`][crate::Transform::gray] is not specified, or
+    ///   [`Transform::gray`][crate::Transform::gray] is not specified, or
     /// - partially decompressed using a cropping region.
     #[doc(alias = "TJSAMP_UNKNOWN")]
     Unknown = raw::TJSAMP_TJSAMP_UNKNOWN,
@@ -398,7 +398,7 @@ pub enum Error {
     /// TurboJPEG returned an error message.
     #[error("TurboJPEG error: {0}")]
     TurboJpegError(String),
-    
+
     /// TurboJPEG unexpectedly returned a null pointer, prehaps because it ran out of memory.
     #[error("TurboJPEG returned null pointer")]
     Null,

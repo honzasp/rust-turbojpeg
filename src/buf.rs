@@ -28,6 +28,12 @@ impl AsMut<[u8]> for OwnedBuf {
     fn as_mut(&mut self) -> &mut [u8] { self.deref_mut() }
 }
 
+impl Default for OwnedBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OwnedBuf {
     /// Creates an empty buffer.
     pub fn new() -> OwnedBuf {
@@ -54,6 +60,11 @@ impl OwnedBuf {
     pub fn len(&self) -> usize {
         self.len
     }
+
+    /// Whether the buffer is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 }
 
 impl Drop for OwnedBuf {
@@ -71,11 +82,11 @@ impl Drop for OwnedBuf {
 /// from the standard library:
 ///
 /// - Borrowed buffer wraps a `&mut [u8]`, preallocated slice of fixed size provided by you. When
-/// using a borrowed buffer, TurboJPEG cannot resize the buffer, so the operation will fail if the
-/// output does not fit into the buffer.
+///   using a borrowed buffer, TurboJPEG cannot resize the buffer, so the operation will fail if the
+///   output does not fit into the buffer.
 ///
 /// - Owned buffer wraps an [`OwnedBuf`], memory buffer owned by TurboJPEG. This buffer can be
-/// automatically resized to contain the compressed data, so you don't have to worry about its size.
+///   automatically resized to contain the compressed data, so you don't have to worry about its size.
 ///
 /// The lifetime parameter `'a` tracks the lifetime of the borrowed slice. In the case of owned
 /// buffer, the lifetime can be `'static`.
@@ -138,6 +149,11 @@ impl<'a> OutputBuf<'a> {
     /// Returns the length of the buffer.
     pub fn len(&self) -> usize {
         self.len
+    }
+
+    /// Whether the buffer is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
     /// Converts this buffer into an owned buffer.

@@ -14,6 +14,8 @@ categories = ["compression", "external-ffi-bindings", "multimedia::images"]
 description = "Raw bindings for TurboJPEG"
 links = "turbojpeg"
 
+rust-version = "1.81"
+
 exclude = [
     "libjpeg-turbo/.gitattributes",
     "libjpeg-turbo/.github/",

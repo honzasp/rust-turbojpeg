@@ -20,7 +20,7 @@ fn main() -> Result<()> {
     )
     .get_matches();
 
-    let image = image::io::Reader::open(args.value_of("INPUT").unwrap())?
+    let image = image::ImageReader::open(args.value_of("INPUT").unwrap())?
         .with_guessed_format()?
         .decode()?
         .to_rgb8();

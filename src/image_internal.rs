@@ -152,7 +152,7 @@ impl Image<Vec<u8>> {
         // generate the image
 
         let align = 32;
-        let pitch = (pixel_size * width + align - 1) / align * align;
+        let pitch = (pixel_size * width).div_ceil(align) * align;
         let mut pixels = vec![0; pitch * height];
 
         for y in 0..height {
@@ -263,8 +263,8 @@ impl<T> YuvImage<T> {
     /// This is the [image width][Self::width] padded to the nearest multiple of the [horizontal subsampling
     /// factor][Subsamp::width()] and then aligned to the [row alignment][Self::align].
     pub fn y_width(&self) -> usize {
-        let width = next_multiple_of(self.width, self.subsamp.width());
-        next_multiple_of(width, self.align)
+        let width = self.width.next_multiple_of(self.subsamp.width());
+        width.next_multiple_of(self.align)
     }
 
     /// Computes height of the luminance (Y) plane.
@@ -272,7 +272,7 @@ impl<T> YuvImage<T> {
     /// This is the [image height][Self::height] padded to the nearest multiple of the [vertical
     /// subsampling factor][Subsamp::height()].
     pub fn y_height(&self) -> usize {
-        next_multiple_of(self.height, self.subsamp.height())
+        self.height.next_multiple_of(self.subsamp.height())
     }
 
     /// Computes size of the luminance (Y) plane.
@@ -285,8 +285,8 @@ impl<T> YuvImage<T> {
     /// This is the [Y plane width][Self::y_width()] divided by the [horizontal subsampling
     /// factor][Subsamp::width()] and then aligned to the [row alignment][Self::align].
     pub fn uv_width(&self) -> usize {
-        let width = div_ceil(self.width, self.subsamp.width());
-        next_multiple_of(width, self.align)
+        let width = self.width.div_ceil(self.subsamp.width());
+        width.next_multiple_of(self.align)
     }
 
     /// Computes height of each chrominance (U, V) plane.
@@ -294,7 +294,7 @@ impl<T> YuvImage<T> {
     /// This is the [Y plane height][Self::y_height()] divided by the [vertical subsampling
     /// factor][Subsamp::height()].
     pub fn uv_height(&self) -> usize {
-        div_ceil(self.height, self.subsamp.height())
+        self.height.div_ceil(self.subsamp.height())
     }
 
     /// Computes size of each chrominance (U, V) plane.
@@ -482,14 +482,4 @@ pub fn yuv_plane_len(
         Ok(len) => Ok(len),
         Err(_) => Err(Error::IntegerOverflow("yuv plane size")),
     }
-}
-
-// TODO: these two functions will eventually be stabilized into the standard library
-
-fn next_multiple_of(n: usize, divisor: usize) -> usize {
-    div_ceil(n, divisor) * divisor
-}
-
-fn div_ceil(n: usize, divisor: usize) -> usize {
-    (n + divisor - 1) / divisor
 }

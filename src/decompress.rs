@@ -114,7 +114,7 @@ impl ScalingFactor {
     /// ```
     #[doc(alias = "TJSCALED")]
     pub fn scale(&self, dimension: usize) -> usize {
-        (dimension * self.num + self.denom - 1) / self.denom
+        (dimension * self.num).div_ceil(self.denom)
     }
 }
 

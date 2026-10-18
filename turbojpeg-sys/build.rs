@@ -164,6 +164,15 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
         cmake.configure_arg("-DREQUIRE_SIMD=ON");
     }
 
+    // libjpeg-turbo links its static libraries with the static C run-time by default, which clashes
+    // with Rust's dynamic C run-time on MSVC. Use the run-time that Rust links instead.
+    if env("CARGO_CFG_TARGET_ENV").unwrap() == "msvc" {
+        let crt_static = env::var("CARGO_CFG_TARGET_FEATURE")
+            .is_ok_and(|features| features.split(',').any(|feature| feature == "crt-static"));
+        cmake.define("WITH_CRT_DLL", "ON");
+        cmake.define("CMAKE_MSVC_RUNTIME_LIBRARY", if crt_static { "MultiThreaded" } else { "MultiThreadedDLL" });
+    }
+
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     if target_os == "android" {
         let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Build libjpeg-turbo with the same C runtime as Rust on MSVC targets, which fixes
+  `LNK4098: defaultlib 'LIBCMTD' conflicts with use of other libs` in debug builds
+
 ## 1.2.0
 
 - Set `DEP_TURBOJPEG_INCLUDE` in build scripts of dependent packages

@@ -160,6 +160,16 @@ fn build_vendor(link_kind: LinkKind) -> Result<Library> {
     // Let's remain consistent across build targets and set the libdir ourselves,
     // instead of trying to figure out where to find the libs based on the target
     cmake.define("CMAKE_INSTALL_DEFAULT_LIBDIR", "lib");
+    // Without WITH_CRT_DLL, libjpeg-turbo forces the static CRT on MSVC, and its debug variant
+    // in Debug builds. Rust always links the release CRT (/MD, or /MT with `crt-static`), so
+    // the linker reports LNK4098 and the binary mixes two CRTs. WITH_CRT_DLL=ON only stops that
+    // override; CMAKE_MSVC_RUNTIME_LIBRARY then picks the CRT that Rust uses.
+    if env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        let crt_static = env::var("CARGO_CFG_TARGET_FEATURE")
+            .is_ok_and(|features| features.split(',').any(|f| f == "crt-static"));
+        cmake.define("WITH_CRT_DLL", "ON");
+        cmake.define("CMAKE_MSVC_RUNTIME_LIBRARY", if crt_static { "MultiThreaded" } else { "MultiThreadedDLL" });
+    }
     if cfg!(feature = "require-simd") {
         cmake.configure_arg("-DREQUIRE_SIMD=ON");
     }

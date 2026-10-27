@@ -18,8 +18,19 @@ impl Handle {
     }
 
     pub fn get_error(&mut self) -> Error {
+        Error::TurboJpegError(self.get_error_message())
+    }
+
+    pub fn get_error_message(&mut self) -> String {
         let msg = unsafe { CStr::from_ptr(raw::tj3GetErrorStr(self.ptr)) };
-        Error::TurboJpegError(msg.to_string_lossy().into_owned())
+        msg.to_string_lossy().into_owned()
+    }
+
+    /// Whether the last error was a warning. TurboJPEG also reports a fatal error as a warning when
+    /// a warning preceded it.
+    pub fn error_is_warning(&mut self) -> bool {
+        let code = unsafe { raw::tj3GetErrorCode(self.ptr) };
+        code == raw::TJERR_TJERR_WARNING as libc::c_int
     }
 
     pub fn get(&mut self, param: raw::TJPARAM) -> libc::c_int {

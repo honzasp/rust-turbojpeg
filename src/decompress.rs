@@ -11,6 +11,8 @@ use crate::image_internal::yuv_pixels_len;
 pub struct Decompressor {
     handle: Handle,
     scaling_factor: ScalingFactor,
+    accept_warnings: bool,
+    warning: Option<String>,
 }
 
 unsafe impl Send for Decompressor {}
@@ -157,7 +159,71 @@ impl Decompressor {
     #[doc(alias = "tj3Init")]
     pub fn new() -> Result<Decompressor> {
         let handle = Handle::new(raw::TJINIT_TJINIT_DECOMPRESS)?;
-        Ok(Self { handle, scaling_factor: ScalingFactor::ONE })
+        Ok(Self { handle, scaling_factor: ScalingFactor::ONE, accept_warnings: false, warning: None })
+    }
+
+    /// Accept JPEG data that decodes with warnings, such as truncated or slightly corrupt files.
+    ///
+    /// By default (`false`), any warning from libjpeg makes [`read_header()`][Self::read_header],
+    /// [`decompress()`][Self::decompress] and [`decompress_to_yuv()`][Self::decompress_to_yuv]
+    /// return an error. When enabled, they succeed if libjpeg only warned, and
+    /// [`warning()`][Self::warning] returns the first warning so that the caller can decide whether
+    /// the output is usable. Fatal errors are still returned as errors.
+    ///
+    /// libjpeg reports only the first warning of each call, so later warnings in the same data are
+    /// not visible. TurboJPEG also reports a fatal error that follows a warning as a warning, with
+    /// the fatal error's message. `read_header()` detects this because no header was read, but the
+    /// decompression functions then succeed with incomplete output. Callers that accept only
+    /// libjpeg's warning messages are unaffected.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // read JPEG data from file and cut off its end
+    /// let jpeg_data = std::fs::read("examples/parrots.jpg")?;
+    /// let truncated = &jpeg_data[..jpeg_data.len() / 2];
+    ///
+    /// let mut decompressor = turbojpeg::Decompressor::new()?;
+    /// let header = decompressor.read_header(truncated)?;
+    /// let mut image = turbojpeg::Image {
+    ///     pixels: vec![0; 3 * header.width * header.height],
+    ///     width: header.width,
+    ///     pitch: 3 * header.width,
+    ///     height: header.height,
+    ///     format: turbojpeg::PixelFormat::RGB,
+    /// };
+    /// assert!(decompressor.decompress(truncated, image.as_deref_mut()).is_err());
+    ///
+    /// // with warnings accepted, the visible part of the image is decoded
+    /// decompressor.set_accept_warnings(true);
+    /// decompressor.decompress(truncated, image.as_deref_mut())?;
+    /// assert_eq!(decompressor.warning(), Some("Premature end of JPEG file"));
+    ///
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    #[doc(alias = "tj3GetErrorCode")]
+    pub fn set_accept_warnings(&mut self, accept_warnings: bool) {
+        self.accept_warnings = accept_warnings;
+    }
+
+    /// The first warning of the last successful call when warnings are accepted.
+    ///
+    /// See [`set_accept_warnings()`][Self::set_accept_warnings].
+    pub fn warning(&self) -> Option<&str> {
+        self.warning.as_deref()
+    }
+
+    /// Run a TurboJPEG function that returns 0 on success, applying the warning policy.
+    fn run(&mut self, call: impl FnOnce(&mut Handle) -> libc::c_int) -> Result<()> {
+        self.warning = None;
+        if call(&mut self.handle) == 0 {
+            return Ok(())
+        }
+        if self.accept_warnings && self.handle.error_is_warning() {
+            self.warning = Some(self.handle.get_error_message());
+            return Ok(())
+        }
+        Err(self.handle.get_error())
     }
 
     /// Read the JPEG header without decompressing the image.
@@ -181,15 +247,18 @@ impl Decompressor {
     pub fn read_header(&mut self, jpeg_data: &[u8]) -> Result<DecompressHeader> {
         let jpeg_data_len = jpeg_data.len().try_into()
             .map_err(|_| Error::IntegerOverflow("jpeg_data.len()"))?;
-        let res = unsafe {
-            raw::tj3DecompressHeader(self.handle.as_ptr(), jpeg_data.as_ptr(), jpeg_data_len)
-        };
-        if res != 0 {
-            return Err(self.handle.get_error())
-        }
+        self.run(|handle| unsafe {
+            raw::tj3DecompressHeader(handle.as_ptr(), jpeg_data.as_ptr(), jpeg_data_len)
+        })?;
 
-        let width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH)
-            .try_into().map_err(|_| Error::IntegerOverflow("width"))?;
+        let width = self.handle.get(raw::TJPARAM_TJPARAM_JPEGWIDTH);
+        // A fatal error after an accepted warning leaves no header, and its message in the warning.
+        if width <= 0 {
+            if let Some(message) = self.warning.take() {
+                return Err(Error::TurboJpegError(message))
+            }
+        }
+        let width = width.try_into().map_err(|_| Error::IntegerOverflow("width"))?;
         let height = self.handle.get(raw::TJPARAM_TJPARAM_JPEGHEIGHT)
             .try_into().map_err(|_| Error::IntegerOverflow("height"))?;
         let subsamp = Subsamp::from_int(self.handle.get(raw::TJPARAM_TJPARAM_SUBSAMP))?;
@@ -345,18 +414,13 @@ impl Decompressor {
 
         self.check_output_size(jpeg_data, width, height)?;
 
-        let res = unsafe {
+        self.run(|handle| unsafe {
             raw::tj3Decompress8(
-                self.handle.as_ptr(),
+                handle.as_ptr(),
                 jpeg_data.as_ptr(), jpeg_data_len,
                 pixels.as_mut_ptr(), pitch, format as i32,
             )
-        };
-        if res != 0 {
-            return Err(self.handle.get_error())
-        }
-
-        Ok(())
+        })
     }
 
     /// Decompress a JPEG image in `jpeg_data` into `output` as YUV without changing color space.
@@ -408,18 +472,13 @@ impl Decompressor {
 
         self.check_output_size(jpeg_data, width, height)?;
 
-        let res = unsafe {
+        self.run(|handle| unsafe {
             raw::tj3DecompressToYUV8(
-                self.handle.as_ptr(),
+                handle.as_ptr(),
                 jpeg_data.as_ptr(), jpeg_data_len,
                 pixels.as_mut_ptr(), align,
             )
-        };
-        if res != 0 {
-            return Err(self.handle.get_error())
-        }
-
-        Ok(())
+        })
     }
 
     fn check_output_size(&mut self, jpeg_data: &[u8], width: libc::c_int, height: libc::c_int) -> Result<()> {

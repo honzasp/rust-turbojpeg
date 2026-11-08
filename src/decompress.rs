@@ -299,6 +299,18 @@ impl Decompressor {
         self.handle.set(raw::TJPARAM_TJPARAM_SCANLIMIT, scan_limit)
     }
 
+    /// Set the memory limit for intermediate decoding buffers, in MiB.
+    ///
+    /// This limits native intermediate buffers such as progressive JPEG coefficient
+    /// storage. It does not include the input JPEG or the caller's output buffer,
+    /// and is not a limit on total process memory. Zero disables the limit.
+    ///
+    /// Returns an error if `max_memory` cannot be represented by the native API.
+    pub fn set_max_memory(&mut self, max_memory: u32) -> Result<()> {
+        let max_memory = max_memory.try_into().map_err(|_| Error::IntegerOverflow("memory limit"))?;
+        self.handle.set(raw::TJPARAM_TJPARAM_MAXMEMORY, max_memory)
+    }
+
     /// Decompress a JPEG image in `jpeg_data` into `output`.
     ///
     /// The decompressed image is stored in the pixel data of the given `output` image, which must
